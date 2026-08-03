@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.vite/
+.DS_Store
+.env
+.env.*
+provenance/hodograph-one-shot-2026-08-03.html

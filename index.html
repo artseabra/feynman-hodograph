@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="A spatial, sonic instrument for seeing Feynman's hodograph construction." />
+    <meta name="theme-color" content="#faf7ef" />
+    <meta property="og:title" content="The hodograph — a Feynman instrument" />
+    <meta property="og:description" content="Velocity becomes a circle. Explore the construction in linked position and velocity space." />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <title>The hodograph — a Feynman instrument</title>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="masthead">
+        <a class="wordmark" href="#top" aria-label="The hodograph home">
+          <span class="wordmark-mark" aria-hidden="true">◌</span>
+          <span>IFTHIS / INSTRUMENT</span>
+        </a>
+        <div class="masthead-actions">
+          <button id="proof-toggle" class="quiet-button" type="button" aria-controls="proof" aria-expanded="false">
+            Construction
+          </button>
+          <button id="theme-toggle" class="icon-button" type="button" aria-label="Switch to chalkboard theme" data-tooltip="Theme">
+            <span aria-hidden="true">◐</span>
+          </button>
+        </div>
+      </header>
+
+      <section id="top" class="instrument" aria-labelledby="instrument-title">
+        <div class="instrument-heading">
+          <div>
+            <p class="eyebrow">RECONSTRUCTED FROM THE LOST LECTURE · GOODSTEIN &amp; GOODSTEIN</p>
+            <h1 id="instrument-title">The hodograph</h1>
+          </div>
+          <p class="dek">A planet traces an ellipse in position space. Its velocity traces a circle—one displaced from the origin by eccentricity.</p>
+        </div>
+
+        <div class="stage-shell" id="stage-shell">
+          <div id="stage" class="stage" aria-describedby="stage-instructions"></div>
+          <div class="stage-hud stage-hud-left" aria-hidden="true">
+            <span class="hud-kicker"><i class="dot dot-orbit"></i>POSITION SPACE</span>
+            <strong>ORBIT</strong>
+          </div>
+          <div class="stage-hud stage-hud-right" aria-hidden="true">
+            <span class="hud-kicker"><i class="dot dot-hodograph"></i>VELOCITY SPACE</span>
+            <strong>HODOGRAPH</strong>
+          </div>
+          <div class="stage-telemetry">
+            <span>r <b id="radius-readout">—</b></span>
+            <span>|v| <b id="speed-readout">—</b></span>
+            <span>offset <b id="offset-readout">—</b></span>
+          </div>
+          <p id="stage-instructions" class="stage-instructions">Drag to orbit · Shift-drag or right-drag to pan · Scroll or pinch to dolly</p>
+          <p id="render-status" class="render-status" role="status" hidden></p>
+        </div>
+
+        <section class="dock" aria-label="Hodograph instrument controls">
+          <div class="dock-tabs" role="tablist" aria-label="Instrument control sections">
+            <button class="dock-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="panel-playback" id="tab-playback" data-dock="playback">Playback</button>
+            <button class="dock-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-geometry" id="tab-geometry" data-dock="geometry">Geometry</button>
+            <button class="dock-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-camera" id="tab-camera" data-dock="camera">Camera</button>
+            <button class="dock-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-theme" id="tab-theme" data-dock="theme">Theme</button>
+            <button class="dock-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-sound" id="tab-sound" data-dock="sound">Sound</button>
+          </div>
+
+          <div class="dock-panels">
+            <section id="panel-playback" class="dock-panel is-active" role="tabpanel" aria-labelledby="tab-playback" data-panel="playback">
+              <div class="control-group control-group-actions">
+                <span class="control-label">Transport</span>
+                <div class="button-row">
+                  <button id="play-toggle" class="primary-button" type="button">Pause</button>
+                  <button id="restart" class="secondary-button" type="button">Restart</button>
+                </div>
+              </div>
+              <div class="control-group control-group-wide">
+                <label for="speed-control">Time scale <output id="time-scale-value">1.0×</output></label>
+                <input id="speed-control" type="range" min="0.2" max="3" step="0.1" value="1" />
+              </div>
+              <button class="tooltip-button" type="button" data-tooltip-target="tip-equal-time" aria-expanded="false">?</button>
+              <p id="tip-equal-time" class="tooltip-copy" hidden>Mean anomaly advances uniformly, so each construction wedge represents the same interval of time.</p>
+            </section>
+
+            <section id="panel-geometry" class="dock-panel" role="tabpanel" aria-labelledby="tab-geometry" data-panel="geometry" hidden>
+              <div class="control-group control-group-wide">
+                <label for="eccentricity-control">Eccentricity, <i>e</i> <output id="eccentricity-value">0.55</output></label>
+                <input id="eccentricity-control" type="range" min="0" max="0.85" step="0.01" value="0.55" />
+              </div>
+              <div class="control-group control-group-wide">
+                <label for="wedges-control">Equal-time wedges, N <output id="wedges-value">16</output></label>
+                <input id="wedges-control" type="range" min="6" max="36" step="1" value="16" />
+              </div>
+              <button class="tooltip-button" type="button" data-tooltip-target="tip-offset" aria-expanded="false">?</button>
+              <p id="tip-offset" class="tooltip-copy" hidden>The hodograph circle’s displacement from the velocity origin grows as <i>e / √(1 − e²)</i> in this normalized construction.</p>
+            </section>
+
+            <section id="panel-camera" class="dock-panel" role="tabpanel" aria-labelledby="tab-camera" data-panel="camera" hidden>
+              <div class="control-group control-group-actions">
+                <span class="control-label">Canonical views</span>
+                <div class="button-row camera-row">
+                  <button class="secondary-button" type="button" data-camera-view="proof">Proof</button>
+                  <button class="secondary-button" type="button" data-camera-view="front">Front</button>
+                  <button class="secondary-button" type="button" data-camera-view="overhead">Overhead</button>
+                  <button class="secondary-button" type="button" data-camera-view="side">Side</button>
+                  <button id="camera-reset" class="secondary-button" type="button">Frame all</button>
+                </div>
+              </div>
+              <p class="control-note">Clicking a view is exact. Dragging begins only after deliberate movement.</p>
+            </section>
+
+            <section id="panel-theme" class="dock-panel" role="tabpanel" aria-labelledby="tab-theme" data-panel="theme" hidden>
+              <div class="control-group control-group-actions">
+                <span class="control-label">Surface</span>
+                <div class="button-row">
+                  <button id="theme-light" class="theme-choice is-selected" type="button" aria-pressed="true">Warm paper</button>
+                  <button id="theme-chalkboard" class="theme-choice" type="button" aria-pressed="false">Chalkboard</button>
+                </div>
+              </div>
+              <p class="control-note">Your choice stays local to this browser.</p>
+            </section>
+
+            <section id="panel-sound" class="dock-panel" role="tabpanel" aria-labelledby="tab-sound" data-panel="sound" hidden>
+              <div class="control-group control-group-actions sound-actions">
+                <span class="control-label">Cinematic sonification</span>
+                <div class="button-row">
+                  <button id="sound-enable" class="primary-button" type="button">Enable sound</button>
+                  <button id="sound-mute" class="secondary-button" type="button" disabled>Mute</button>
+                </div>
+              </div>
+              <div class="audio-controls" aria-describedby="sound-note">
+                <label for="sound-master">Master <output id="sound-master-value">72%</output></label>
+                <input id="sound-master" type="range" min="0" max="1" step="0.01" value="0.72" />
+                <label for="sound-atmosphere">Atmosphere <output id="sound-atmosphere-value">68%</output></label>
+                <input id="sound-atmosphere" type="range" min="0" max="1" step="0.01" value="0.68" />
+                <label for="sound-motion">Motion <output id="sound-motion-value">64%</output></label>
+                <input id="sound-motion" type="range" min="0" max="1" step="0.01" value="0.64" />
+                <label for="sound-markers">Markers <output id="sound-markers-value">52%</output></label>
+                <input id="sound-markers" type="range" min="0" max="1" step="0.01" value="0.52" />
+              </div>
+              <p id="sound-note" class="control-note">Atmosphere follows orbital radius; Motion follows velocity and phase; Markers sound at equal-time boundaries. This is interpretive sonification.</p>
+            </section>
+          </div>
+        </section>
+      </section>
+
+      <section id="proof" class="proof" aria-labelledby="proof-title" hidden>
+        <div class="proof-heading">
+          <p class="eyebrow">THE CONSTRUCTION</p>
+          <h2 id="proof-title">Feynman’s construction, in order</h2>
+        </div>
+        <ol class="proof-steps">
+          <li><span>01</span><p><b>Equal area, equal time.</b> Equal increments of mean anomaly produce equal-time wedges from the focus.</p></li>
+          <li><span>02</span><p><b>Velocity changes.</b> In an inverse-square field, the equal-time velocity-change vectors share a length and turning rule.</p></li>
+          <li><span>03</span><p><b>Chain the changes.</b> Equal-length vectors that turn by a constant angle close into the hodograph circle.</p></li>
+          <li><span>04</span><p><b>Read the offset.</b> Eccentricity displaces the hodograph’s center from the velocity origin.</p></li>
+          <li><span>05</span><p><b>Return to position.</b> The perpendicular relation between the hodograph radius and velocity recovers the conic orbit.</p></li>
+        </ol>
+        <p class="source-note">The circle-hodograph result predates Feynman and is associated with Hamilton (1846). Feynman’s elementary geometric presentation was reconstructed by David and Judith Goodstein in <i>Feynman’s Lost Lecture: The Motion of Planets Around the Sun</i>.</p>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

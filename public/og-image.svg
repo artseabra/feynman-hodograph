@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">The hodograph</title>
+  <desc id="desc">A warm-paper mathematical instrument showing a planet ellipse and a blue velocity hodograph circle.</desc>
+  <defs>
+    <linearGradient id="paper" x1="0" x2="1" y1="0" y2="1">
+      <stop stop-color="#fbf8ef"/>
+      <stop offset="1" stop-color="#e9e3d4"/>
+    </linearGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="18"/></filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#paper)"/>
+  <circle cx="160" cy="100" r="210" fill="#587bb6" opacity=".09" filter="url(#soft)"/>
+  <circle cx="1070" cy="560" r="260" fill="#c96d3a" opacity=".10" filter="url(#soft)"/>
+  <text x="72" y="95" fill="#31548e" font-family="ui-monospace, monospace" font-size="18" letter-spacing="4">IFTHIS INSTRUMENT · FEYNMAN / GOODSTEIN</text>
+  <text x="70" y="190" fill="#1e2024" font-family="Georgia, serif" font-size="76" font-weight="700">The hodograph</text>
+  <text x="74" y="235" fill="#565b63" font-family="ui-sans-serif, system-ui" font-size="28">Velocity becomes a circle.</text>
+  <g transform="translate(180 405)">
+    <ellipse cx="0" cy="0" rx="165" ry="86" fill="none" stroke="#c96d3a" stroke-width="5"/>
+    <circle cx="-78" cy="0" r="11" fill="#d9a34a"/>
+    <line x1="-78" y1="0" x2="130" y2="-56" stroke="#c96d3a" stroke-width="3" opacity=".7"/>
+    <circle cx="130" cy="-56" r="13" fill="#c96d3a"/>
+  </g>
+  <g transform="translate(820 395)">
+    <line x1="-170" y1="0" x2="170" y2="0" stroke="#9ca5b0" stroke-width="2" opacity=".7"/>
+    <line x1="0" y1="-170" x2="0" y2="170" stroke="#9ca5b0" stroke-width="2" opacity=".7"/>
+    <circle cx="0" cy="-62" r="120" fill="none" stroke="#31548e" stroke-width="5"/>
+    <circle cx="0" cy="0" r="7" fill="#1e2024"/>
+    <line x1="0" y1="-62" x2="96" y2="-130" stroke="#2c927b" stroke-width="4"/>
+    <circle cx="96" cy="-130" r="13" fill="#31548e"/>
+  </g>
+</svg>
