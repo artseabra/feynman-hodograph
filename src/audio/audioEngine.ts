@@ -1,14 +1,26 @@
+import { type ApsisCrossing, type WedgeCrossing } from '../model/orbit';
 import type { AudioMix, OrbitalState } from '../types';
+import { markerTuning, orbitalMeasures, sonificationLensProfile } from './sonification';
+
+interface ContinuousVoice {
+  oscillator: OscillatorNode;
+  gain: GainNode;
+  ratio: number;
+  baseLevel: number;
+}
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
 }
 
 function setTarget(parameter: AudioParam, value: number, time: number, timeConstant = 0.08): void {
-  parameter.cancelScheduledValues(time);
   parameter.setTargetAtTime(value, time, timeConstant);
 }
 
+/**
+ * Browser-native, additive sonification of the normalized Kepler solution.
+ * It does not use samples or make a claim about what a planet "sounds like".
+ */
 export class AudioEngine {
   private context: AudioContext | null = null;
   private master: GainNode | null = null;
@@ -17,13 +29,12 @@ export class AudioEngine {
   private markers: GainNode | null = null;
   private atmosphereFilter: BiquadFilterNode | null = null;
   private motionFilter: BiquadFilterNode | null = null;
-  private motionPan: StereoPannerNode | null = null;
-  private atmosphereVoices: OscillatorNode[] = [];
-  private motionVoice: OscillatorNode | null = null;
-  private lfo: OscillatorNode | null = null;
+  private atmosphereVoices: ContinuousVoice[] = [];
+  private motionVoices: ContinuousVoice[] = [];
   private enabled = false;
   private muted = false;
   private mix: AudioMix | null = null;
+  private nextMarkerTime = 0;
 
   get isEnabled(): boolean {
     return this.enabled;
@@ -51,64 +62,103 @@ export class AudioEngine {
   setMix(mix: AudioMix): void {
     this.mix = mix;
     this.muted = mix.muted;
-    if (!this.context || !this.master || !this.atmosphere || !this.motion || !this.markers) return;
+    if (!this.context || !this.master || !this.markers) return;
     const time = this.context.currentTime;
-    const attenuation = mix.muted ? 0 : 1;
-    setTarget(this.master.gain, attenuation * mix.master * 0.72, time, 0.1);
-    setTarget(this.atmosphere.gain, mix.atmosphere, time);
-    setTarget(this.motion.gain, mix.motion, time);
-    setTarget(this.markers.gain, mix.markers, time);
+    setTarget(this.master.gain, mix.muted ? 0 : mix.master * 0.64, time, 0.075);
+    setTarget(this.markers.gain, mix.muted ? 0 : 1, time, 0.075);
   }
 
   update(state: OrbitalState, playing: boolean): void {
-    if (!this.enabled || !this.context || !this.mix || !this.atmosphereFilter || !this.motionFilter || !this.motionPan || !this.motionVoice) return;
-    const time = this.context.currentTime;
-    const radiusFloor = 1 - state.eccentricity;
-    const radiusCeiling = 1 + state.eccentricity;
-    const radiusNormal = (state.radius - radiusFloor) / Math.max(0.001, radiusCeiling - radiusFloor);
-    const speedFloor = Math.sqrt((1 - state.eccentricity) / (1 + state.eccentricity));
-    const speedCeiling = Math.sqrt((1 + state.eccentricity) / (1 - state.eccentricity));
-    const speedNormal = clamp((state.speed - speedFloor) / Math.max(0.001, speedCeiling - speedFloor), 0, 1);
-    const activity = playing && !this.muted ? 1 : 0;
+    if (
+      !this.enabled
+      || !this.context
+      || !this.mix
+      || !this.atmosphere
+      || !this.motion
+      || !this.atmosphereFilter
+      || !this.motionFilter
+    ) return;
 
-    this.atmosphereVoices.forEach((voice, index) => {
-      const harmonic = [1, 1.498, 2.006][index] ?? 1;
-      setTarget(voice.frequency, (43 + radiusNormal * 14) * harmonic, time, 0.22);
+    const time = this.context.currentTime;
+    const measures = orbitalMeasures(state);
+    const profile = sonificationLensProfile(this.mix.lens);
+    const activity = playing && !this.muted ? 1 : 0;
+    const potentialShape = measures.potentialNormalized - 0.5;
+    const kineticShape = measures.kineticNormalized - 0.5;
+    const phaseBrightness = 0.5 + 0.5 * Math.cos(measures.hodographAngle);
+
+    // The field is a just-intoned stack whose slow colour follows potential.
+    // Pitch only moves by a few cents, preserving a stable instrument rather
+    // than turning the orbit into a queasy continuous siren.
+    const atmosphereBase = 58 * Math.pow(2, (measures.hodographRadius - 1) * 0.18 + potentialShape * 0.045);
+    this.atmosphereVoices.forEach(voice => {
+      setTarget(voice.oscillator.frequency, atmosphereBase * voice.ratio, time, 0.18);
+      setTarget(
+        voice.gain.gain,
+        voice.baseLevel * (0.78 + measures.potentialNormalized * 0.32),
+        time,
+        0.2,
+      );
     });
-    setTarget(this.atmosphereFilter.frequency, 480 + radiusNormal * 1380, time, 0.26);
-    setTarget(this.motionVoice.frequency, 104 + speedNormal * 216 + Math.sin(state.trueAnomaly) * 8, time, 0.1);
-    setTarget(this.motionFilter.frequency, 760 + speedNormal * 2750, time, 0.12);
-    setTarget(this.motionPan.pan, clamp(Math.sin(state.trueAnomaly) * 0.72, -0.86, 0.86), time, 0.12);
-    setTarget(this.atmosphere!.gain, this.mix.atmosphere * activity * 0.72, time, 0.18);
-    setTarget(this.motion!.gain, this.mix.motion * activity * (0.18 + speedNormal * 0.42), time, 0.1);
+    setTarget(this.atmosphereFilter.frequency, 420 + measures.potentialNormalized * 1_460, time, 0.22);
+    setTarget(
+      this.atmosphere.gain,
+      this.mix.atmosphere * profile.atmosphere * activity * (0.42 + measures.angularMomentum * 0.28),
+      time,
+      0.18,
+    );
+
+    // Velocity enters as brightness and a constrained pitch interval. Phase
+    // changes spectral weight only; it never flings the listener left/right.
+    const motionBase = 116 * Math.pow(2, kineticShape * 0.14);
+    this.motionVoices.forEach((voice, index) => {
+      setTarget(voice.oscillator.frequency, motionBase * voice.ratio, time, 0.11);
+      const phaseWeight = index === 0 ? 0.82 + phaseBrightness * 0.16 : 0.42 + (1 - phaseBrightness) * 0.24;
+      setTarget(voice.gain.gain, voice.baseLevel * phaseWeight, time, 0.12);
+    });
+    setTarget(this.motionFilter.frequency, 760 + measures.kineticNormalized * 2_780 + phaseBrightness * 360, time, 0.13);
+    setTarget(
+      this.motion.gain,
+      this.mix.motion * profile.motion * activity * (0.22 + measures.kineticNormalized * 0.46),
+      time,
+      0.1,
+    );
   }
 
-  triggerWedge(wedgeIndex: number, state: OrbitalState): void {
-    if (!this.enabled || this.muted || !this.context || !this.markers || !this.mix) return;
-    const time = this.context.currentTime;
-    const oscillator = this.context.createOscillator();
-    const filter = this.context.createBiquadFilter();
-    const gain = this.context.createGain();
-    const pan = this.context.createStereoPanner();
-    const overtone = wedgeIndex % 5;
-    const frequency = 190 + overtone * 39 + clamp(state.speed, 0, 3.5) * 27;
+  triggerWedge(crossing: WedgeCrossing, state: OrbitalState): void {
+    if (!this.enabled || this.muted || !this.context || !this.mix) return;
+    const profile = sonificationLensProfile(this.mix.lens);
+    const tuning = markerTuning(crossing, state);
+    const time = this.reserveMarkerTime();
+    this.strike(
+      time,
+      tuning.frequency * profile.markerPitch,
+      tuning.partials,
+      0.17 * this.mix.markers * profile.markers * tuning.intensity,
+      tuning.duration,
+      tuning.pan,
+    );
+  }
 
-    oscillator.type = wedgeIndex % 2 === 0 ? 'sine' : 'triangle';
-    oscillator.frequency.setValueAtTime(frequency, time);
-    filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(frequency * 2.1, time);
-    filter.Q.setValueAtTime(4.8, time);
-    gain.gain.setValueAtTime(0.0001, time);
-    gain.gain.exponentialRampToValueAtTime(0.11 * this.mix.markers, time + 0.015);
-    gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.48);
-    pan.pan.setValueAtTime(Math.sin(state.trueAnomaly) * 0.58, time);
-
-    oscillator.connect(filter);
-    filter.connect(gain);
-    gain.connect(pan);
-    pan.connect(this.markers);
-    oscillator.start(time);
-    oscillator.stop(time + 0.52);
+  triggerApsis(kind: ApsisCrossing['kind'], state: OrbitalState): void {
+    if (!this.enabled || this.muted || !this.context || !this.mix) return;
+    const measures = orbitalMeasures(state);
+    const profile = sonificationLensProfile(this.mix.lens);
+    const time = this.reserveMarkerTime(0.085);
+    const aphelion = kind === 'aphelion';
+    const frequency = clamp(
+      (aphelion ? 82 : 132) * Math.pow(2, (measures.hodographRadius - 1) * 0.16) * profile.markerPitch,
+      62,
+      680,
+    );
+    this.strike(
+      time,
+      frequency,
+      aphelion ? [1, 0.24, 0.08] : [1, 0.48, 0.22, 0.08],
+      0.19 * this.mix.markers * profile.markers * (aphelion ? 0.74 : 1),
+      aphelion ? 1.35 : 0.92,
+      0,
+    );
   }
 
   toggleMute(): boolean {
@@ -118,15 +168,60 @@ export class AudioEngine {
   }
 
   async destroy(): Promise<void> {
-    this.atmosphereVoices.forEach(voice => voice.stop());
-    this.motionVoice?.stop();
-    this.lfo?.stop();
+    [...this.atmosphereVoices, ...this.motionVoices].forEach(voice => {
+      try {
+        voice.oscillator.stop();
+      } catch {
+        // A stopped oscillator is already safe to discard.
+      }
+    });
     this.atmosphereVoices = [];
-    this.motionVoice = null;
-    this.lfo = null;
+    this.motionVoices = [];
     if (this.context && this.context.state !== 'closed') await this.context.close();
     this.context = null;
     this.enabled = false;
+  }
+
+  private reserveMarkerTime(spacing = 0.055): number {
+    if (!this.context) return 0;
+    const time = Math.max(this.context.currentTime + 0.008, this.nextMarkerTime);
+    this.nextMarkerTime = time + spacing;
+    return time;
+  }
+
+  private strike(
+    time: number,
+    frequency: number,
+    partials: readonly number[],
+    amplitude: number,
+    duration: number,
+    pan: number,
+  ): void {
+    if (!this.context || !this.markers) return;
+    const filter = this.context.createBiquadFilter();
+    const panner = this.context.createStereoPanner();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(Math.min(7_000, frequency * 2.35), time);
+    filter.Q.setValueAtTime(2.8, time);
+    panner.pan.setValueAtTime(clamp(pan, -0.22, 0.22), time);
+
+    partials.forEach((partial, index) => {
+      const oscillator = this.context!.createOscillator();
+      const gain = this.context!.createGain();
+      const partialDuration = duration * (1 - Math.min(index, 3) * 0.11);
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(frequency * (index === 0 ? 1 : index === 1 ? 1.5 : index === 2 ? 2.01 : 2.73), time);
+      gain.gain.setValueAtTime(0.0001, time);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, amplitude * partial), time + 0.014 + index * 0.003);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + partialDuration);
+      oscillator.connect(gain);
+      gain.connect(filter);
+      oscillator.start(time);
+      oscillator.stop(time + partialDuration + 0.035);
+    });
+
+    filter.connect(panner);
+    panner.connect(this.markers);
   }
 
   private createGraph(): void {
@@ -140,70 +235,45 @@ export class AudioEngine {
     const atmosphereFilter = context.createBiquadFilter();
     const motion = context.createGain();
     const motionFilter = context.createBiquadFilter();
-    const motionPan = context.createStereoPanner();
     const markers = context.createGain();
-    const delay = context.createDelay(1.4);
-    const feedback = context.createGain();
-    const wet = context.createGain();
+    const markerDelay = context.createDelay(0.55);
+    const markerFeedback = context.createGain();
+    const markerEchoFilter = context.createBiquadFilter();
+    const markerWet = context.createGain();
 
-    compressor.threshold.setValueAtTime(-19, context.currentTime);
-    compressor.knee.setValueAtTime(20, context.currentTime);
-    compressor.ratio.setValueAtTime(10, context.currentTime);
-    compressor.attack.setValueAtTime(0.008, context.currentTime);
-    compressor.release.setValueAtTime(0.18, context.currentTime);
+    compressor.threshold.setValueAtTime(-13, context.currentTime);
+    compressor.knee.setValueAtTime(12, context.currentTime);
+    compressor.ratio.setValueAtTime(12, context.currentTime);
+    compressor.attack.setValueAtTime(0.006, context.currentTime);
+    compressor.release.setValueAtTime(0.24, context.currentTime);
     master.gain.setValueAtTime(0, context.currentTime);
+
     atmosphereFilter.type = 'lowpass';
-    atmosphereFilter.Q.setValueAtTime(0.8, context.currentTime);
+    atmosphereFilter.Q.setValueAtTime(0.72, context.currentTime);
     motionFilter.type = 'lowpass';
-    motionFilter.Q.setValueAtTime(2.6, context.currentTime);
-    delay.delayTime.setValueAtTime(0.37, context.currentTime);
-    feedback.gain.setValueAtTime(0.31, context.currentTime);
-    wet.gain.setValueAtTime(0.16, context.currentTime);
+    motionFilter.Q.setValueAtTime(1.8, context.currentTime);
+    markerDelay.delayTime.setValueAtTime(0.233, context.currentTime);
+    markerFeedback.gain.setValueAtTime(0.17, context.currentTime);
+    markerEchoFilter.type = 'lowpass';
+    markerEchoFilter.frequency.setValueAtTime(2_300, context.currentTime);
+    markerWet.gain.setValueAtTime(0.14, context.currentTime);
 
     atmosphere.connect(atmosphereFilter);
     atmosphereFilter.connect(compressor);
-    atmosphereFilter.connect(delay);
     motion.connect(motionFilter);
-    motionFilter.connect(motionPan);
-    motionPan.connect(compressor);
-    motionPan.connect(delay);
+    motionFilter.connect(compressor);
     markers.connect(compressor);
-    markers.connect(delay);
-    delay.connect(feedback);
-    feedback.connect(delay);
-    delay.connect(wet);
-    wet.connect(compressor);
+    markers.connect(markerDelay);
+    markerDelay.connect(markerFeedback);
+    markerFeedback.connect(markerDelay);
+    markerDelay.connect(markerEchoFilter);
+    markerEchoFilter.connect(markerWet);
+    markerWet.connect(compressor);
     compressor.connect(master);
     master.connect(context.destination);
 
-    const lfo = context.createOscillator();
-    const lfoGain = context.createGain();
-    lfo.frequency.setValueAtTime(0.075, context.currentTime);
-    lfoGain.gain.setValueAtTime(11, context.currentTime);
-    lfo.connect(lfoGain);
-    lfoGain.connect(atmosphereFilter.frequency);
-    lfo.start();
-
-    const atmosphereVoices = [1, 1.498, 2.006].map((ratio, index) => {
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
-      oscillator.type = index === 0 ? 'sine' : 'triangle';
-      oscillator.frequency.setValueAtTime(46 * ratio, context.currentTime);
-      gain.gain.setValueAtTime(index === 0 ? 0.45 : 0.18, context.currentTime);
-      oscillator.connect(gain);
-      gain.connect(atmosphere);
-      oscillator.start();
-      return oscillator;
-    });
-
-    const motionVoice = context.createOscillator();
-    const motionGain = context.createGain();
-    motionVoice.type = 'sine';
-    motionVoice.frequency.setValueAtTime(128, context.currentTime);
-    motionGain.gain.setValueAtTime(0.55, context.currentTime);
-    motionVoice.connect(motionGain);
-    motionGain.connect(motion);
-    motionVoice.start();
+    const atmosphereVoices = this.makeContinuousVoices(context, atmosphere, [1, 1.25, 1.5, 2], [0.5, 0.22, 0.15, 0.09]);
+    const motionVoices = this.makeContinuousVoices(context, motion, [1, 1.5], [0.34, 0.17]);
 
     this.context = context;
     this.master = master;
@@ -212,10 +282,27 @@ export class AudioEngine {
     this.markers = markers;
     this.atmosphereFilter = atmosphereFilter;
     this.motionFilter = motionFilter;
-    this.motionPan = motionPan;
     this.atmosphereVoices = atmosphereVoices;
-    this.motionVoice = motionVoice;
-    this.lfo = lfo;
+    this.motionVoices = motionVoices;
+  }
+
+  private makeContinuousVoices(
+    context: AudioContext,
+    destination: AudioNode,
+    ratios: readonly number[],
+    levels: readonly number[],
+  ): ContinuousVoice[] {
+    return ratios.map((ratio, index) => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(80 * ratio, context.currentTime);
+      gain.gain.setValueAtTime(levels[index] ?? 0.1, context.currentTime);
+      oscillator.connect(gain);
+      gain.connect(destination);
+      oscillator.start();
+      return { oscillator, gain, ratio, baseLevel: levels[index] ?? 0.1 };
+    });
   }
 }
 

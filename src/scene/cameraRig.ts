@@ -4,13 +4,27 @@ import type { CameraView, SceneBounds } from '../types';
 const INTENT_DELAY_MS = 90;
 const INTENT_DISTANCE_PX = 4;
 
+// Each preset answers a different question about the construction: the
+// composed proof, the velocity face, the orbital plan, the orthogonality
+// side, and the neutral complete overview.
+const CAMERA_PRESETS: Record<CameraView, { yaw: number; pitch: number }> = {
+  proof: { yaw: -0.58, pitch: 0.34 },
+  front: { yaw: 0.02, pitch: 0.06 },
+  overhead: { yaw: -0.24, pitch: 1.12 },
+  side: { yaw: 1.46, pitch: 0.16 },
+};
+
+const OVERVIEW_PRESET = { yaw: 0.72, pitch: 0.54 };
+
 export class CameraRig {
   private readonly target = new THREE.Vector3();
   private readonly targetGoal = new THREE.Vector3();
-  private yaw = -0.42;
-  private yawGoal = -0.42;
-  private pitch = 0.3;
-  private pitchGoal = 0.3;
+  private readonly followOffset = new THREE.Vector3();
+  private following = false;
+  private yaw = CAMERA_PRESETS.proof.yaw;
+  private yawGoal = CAMERA_PRESETS.proof.yaw;
+  private pitch = CAMERA_PRESETS.proof.pitch;
+  private pitchGoal = CAMERA_PRESETS.proof.pitch;
   private distance = 15;
   private distanceGoal = 15;
   private minimumDistance = 3;
@@ -49,10 +63,12 @@ export class CameraRig {
     }, 0.1);
     const distance = requiredDistance * 1.13;
 
-    this.targetGoal.set(bounds.center.x, bounds.center.y, bounds.center.z);
     this.minimumDistance = Math.max(1.8, requiredDistance * 0.5);
     this.maximumDistance = Math.max(distance * 4, bounds.radius * 6);
-    this.distanceGoal = THREE.MathUtils.clamp(distance, this.minimumDistance, this.maximumDistance);
+    if (!this.following) {
+      this.targetGoal.set(bounds.center.x, bounds.center.y, bounds.center.z);
+      this.distanceGoal = THREE.MathUtils.clamp(distance, this.minimumDistance, this.maximumDistance);
+    }
   }
 
   orbit(deltaX: number, deltaY: number): void {
@@ -64,8 +80,9 @@ export class CameraRig {
     const scale = this.distanceGoal * 0.00145;
     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
     const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
-    this.targetGoal.addScaledVector(right, -deltaX * scale);
-    this.targetGoal.addScaledVector(up, deltaY * scale);
+    const target = this.following ? this.followOffset : this.targetGoal;
+    target.addScaledVector(right, -deltaX * scale);
+    target.addScaledVector(up, deltaY * scale);
   }
 
   dolly(delta: number): void {
@@ -78,28 +95,44 @@ export class CameraRig {
   }
 
   setView(view: CameraView): void {
-    switch (view) {
-      case 'proof':
-        this.yawGoal = -0.42;
-        this.pitchGoal = 0.3;
-        break;
-      case 'front':
-        this.yawGoal = 0;
-        this.pitchGoal = 0;
-        break;
-      case 'overhead':
-        this.yawGoal = 0;
-        this.pitchGoal = 1.18;
-        break;
-      case 'side':
-        this.yawGoal = Math.PI / 2;
-        this.pitchGoal = 0.04;
-        break;
-    }
+    this.releaseFollow();
+    this.setOrientation(CAMERA_PRESETS[view]);
   }
 
-  reset(): void {
-    this.setView('proof');
+  frameAll(): void {
+    this.releaseFollow();
+    this.setOrientation(OVERVIEW_PRESET);
+  }
+
+  beginFollow(
+    point: THREE.Vector3,
+    distance: number,
+    orientation?: { yaw: number; pitch: number },
+  ): void {
+    this.following = true;
+    this.followOffset.set(0, 0, 0);
+    if (orientation) this.setOrientation(orientation);
+    this.minimumDistance = Math.min(this.minimumDistance, 2.45);
+    this.maximumDistance = Math.max(this.maximumDistance, distance * 5);
+    this.distanceGoal = THREE.MathUtils.clamp(distance, this.minimumDistance, this.maximumDistance);
+    this.trackFollow(point);
+  }
+
+  trackFollow(point: THREE.Vector3): void {
+    if (!this.following) return;
+    this.targetGoal.copy(point).add(this.followOffset);
+    // A companion view is attached to its chosen body, not delayed behind it.
+    this.target.copy(this.targetGoal);
+  }
+
+  releaseFollow(): void {
+    this.following = false;
+    this.followOffset.set(0, 0, 0);
+  }
+
+  private setOrientation({ yaw, pitch }: { yaw: number; pitch: number }): void {
+    this.yawGoal = yaw;
+    this.pitchGoal = pitch;
   }
 
   update(camera: THREE.PerspectiveCamera, deltaSeconds: number): void {

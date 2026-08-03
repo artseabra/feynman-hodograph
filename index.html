@@ -111,7 +111,15 @@
                   <button id="camera-reset" class="secondary-button" type="button">Frame all</button>
                 </div>
               </div>
-              <p class="control-note">Clicking a view is exact. Dragging begins only after deliberate movement.</p>
+              <div class="control-group control-group-actions">
+                <span class="control-label">Orbit with</span>
+                <div class="button-row camera-row">
+                  <button class="secondary-button" type="button" data-camera-focus="planet" aria-pressed="false">Planet</button>
+                  <button class="secondary-button" type="button" data-camera-focus="hodograph" aria-pressed="false">Hodograph</button>
+                  <button class="secondary-button is-selected" type="button" data-camera-focus="free" aria-pressed="true">Free camera</button>
+                </div>
+              </div>
+              <p class="control-note">Proof is the composed teaching view. Frame all is a higher neutral overview. Orbit with keeps that moving body beneath you; direction, dolly, and local pan remain yours.</p>
             </section>
 
             <section id="panel-theme" class="dock-panel" role="tabpanel" aria-labelledby="tab-theme" data-panel="theme" hidden>
@@ -127,23 +135,31 @@
 
             <section id="panel-sound" class="dock-panel" role="tabpanel" aria-labelledby="tab-sound" data-panel="sound" hidden>
               <div class="control-group control-group-actions sound-actions">
-                <span class="control-label">Cinematic sonification</span>
+                <span class="control-label">Keplerian sonification</span>
                 <div class="button-row">
                   <button id="sound-enable" class="primary-button" type="button">Enable sound</button>
                   <button id="sound-mute" class="secondary-button" type="button" disabled>Mute</button>
                 </div>
               </div>
-              <div class="audio-controls" aria-describedby="sound-note">
-                <label for="sound-master">Master <output id="sound-master-value">72%</output></label>
-                <input id="sound-master" type="range" min="0" max="1" step="0.01" value="0.72" />
-                <label for="sound-atmosphere">Atmosphere <output id="sound-atmosphere-value">68%</output></label>
-                <input id="sound-atmosphere" type="range" min="0" max="1" step="0.01" value="0.68" />
-                <label for="sound-motion">Motion <output id="sound-motion-value">64%</output></label>
-                <input id="sound-motion" type="range" min="0" max="1" step="0.01" value="0.64" />
-                <label for="sound-markers">Markers <output id="sound-markers-value">52%</output></label>
-                <input id="sound-markers" type="range" min="0" max="1" step="0.01" value="0.52" />
+              <div class="control-group control-group-wide sound-lens">
+                <label for="sound-lens">Listening lens</label>
+                <select id="sound-lens">
+                  <option value="keplerian">Keplerian relationship</option>
+                  <option value="hodograph">Hodograph circle</option>
+                  <option value="construction">Equal-time construction</option>
+                </select>
               </div>
-              <p id="sound-note" class="control-note">Atmosphere follows orbital radius; Motion follows velocity and phase; Markers sound at equal-time boundaries. This is interpretive sonification.</p>
+              <div class="audio-controls" aria-describedby="sound-note">
+                <label for="sound-master">Master <output id="sound-master-value">70%</output></label>
+                <input id="sound-master" type="range" min="0" max="1" step="0.01" value="0.70" />
+                <label for="sound-atmosphere">Potential field <output id="sound-atmosphere-value">74%</output></label>
+                <input id="sound-atmosphere" type="range" min="0" max="1" step="0.01" value="0.74" />
+                <label for="sound-motion">Velocity field <output id="sound-motion-value">48%</output></label>
+                <input id="sound-motion" type="range" min="0" max="1" step="0.01" value="0.48" />
+                <label for="sound-markers">Wedges &amp; apsides <output id="sound-markers-value">78%</output></label>
+                <input id="sound-markers" type="range" min="0" max="1" step="0.01" value="0.78" />
+              </div>
+              <p id="sound-note" class="control-note">Potential shapes the field, velocity shapes brightness, and exact mean-anomaly crossings strike the construction. No continuous hard-panning. Interpretive sonification, not planetary sound.</p>
             </section>
           </div>
         </section>

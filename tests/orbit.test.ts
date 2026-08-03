@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   MAX_ECCENTRICITY,
   TAU,
+  crossedApsisEvents,
+  crossedWedgeEvents,
   crossedWedgeIndices,
   equalTimeSamples,
   hodographCircle,
@@ -74,9 +76,28 @@ describe('wedge scheduler', () => {
     expect(crossedWedgeIndices(TAU / 16, TAU * 3 / 16, 16)).toEqual([2, 3]);
   });
 
+  it('retains the exact boundary state for sound scheduling', () => {
+    expect(crossedWedgeEvents(0, TAU / 16, 16)).toEqual([
+      { index: 1, wedgeCount: 16, cycle: 0, meanAnomaly: TAU / 16 },
+    ]);
+    expect(crossedWedgeEvents(TAU * 15.5 / 16, TAU + 0.04, 16)).toEqual([
+      { index: 0, wedgeCount: 16, cycle: 1, meanAnomaly: TAU },
+    ]);
+  });
+
   it('wraps cleanly through the final wedge without pause duplicates', () => {
     expect(crossedWedgeIndices(TAU * 15.5 / 16, TAU + 0.04, 16)).toEqual([0]);
     expect(crossedWedgeIndices(TAU + 0.04, TAU + 0.04, 16)).toEqual([]);
     expect(crossedWedgeIndices(TAU + 0.04, TAU + 0.01, 16)).toEqual([]);
+  });
+
+  it('adds the two apsides once per orbital revolution', () => {
+    expect(crossedApsisEvents(0, Math.PI)).toEqual([
+      { kind: 'aphelion', cycle: 0, meanAnomaly: Math.PI },
+    ]);
+    expect(crossedApsisEvents(Math.PI, TAU)).toEqual([
+      { kind: 'perihelion', cycle: 1, meanAnomaly: TAU },
+    ]);
+    expect(crossedApsisEvents(TAU, TAU)).toEqual([]);
   });
 });

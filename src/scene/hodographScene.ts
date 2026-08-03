@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { CameraView, OrbitalState, Point3, SceneBounds, ThemePalette } from '../types';
+import type { CameraFocus, CameraView, OrbitalState, Point3, SceneBounds, ThemePalette } from '../types';
 import {
   activeWedgeIndex,
   correspondenceBridge,
@@ -104,6 +104,7 @@ export class HodographScene {
   private palette: ThemePalette;
   private parameters: ConstructionParameters;
   private bounds: SceneBounds;
+  private cameraFocus: CameraFocus = 'free';
   private lastTimestamp = performance.now();
   private activeWedge = -1;
   private wedgeMaterials: THREE.MeshStandardMaterial[] = [];
@@ -208,11 +209,28 @@ export class HodographScene {
 
   setView(view: CameraView): void {
     this.rig.setView(view);
+    this.rig.fit(this.bounds, this.camera, this.camera.aspect);
   }
 
-  resetCamera(): void {
-    this.rig.reset();
+  frameAll(): void {
+    this.rig.frameAll();
     this.rig.fit(this.bounds, this.camera, this.camera.aspect);
+  }
+
+  setCameraFocus(focus: CameraFocus): void {
+    this.cameraFocus = focus;
+    if (focus === 'free') {
+      this.rig.releaseFollow();
+      return;
+    }
+    const target = focus === 'planet' ? this.planet.position : this.hodographPoint.position;
+    this.rig.beginFollow(
+      target,
+      focus === 'planet' ? 4.7 : 4.15,
+      focus === 'planet'
+        ? { yaw: -0.76, pitch: 0.23 }
+        : { yaw: 0.96, pitch: 0.17 },
+    );
   }
 
   resize(width: number, height: number): void {
@@ -227,7 +245,6 @@ export class HodographScene {
   update(state: OrbitalState, timestamp: number): void {
     const deltaSeconds = Math.min(0.08, Math.max(0, (timestamp - this.lastTimestamp) / 1000));
     this.lastTimestamp = timestamp;
-    this.rig.update(this.camera, deltaSeconds);
 
     const position = vector(orbitWorld(state.position, 0.17));
     const focus = vector(orbitWorld({ x: 0, y: 0 }, 0.18));
@@ -245,6 +262,9 @@ export class HodographScene {
     this.updateArrow(this.velocityArrow, center, velocity);
     this.updateBridge(bridge);
     this.updateActiveConstruction(activeWedgeIndex(state.meanAnomaly, this.parameters.wedges));
+    if (this.cameraFocus === 'planet') this.rig.trackFollow(position);
+    if (this.cameraFocus === 'hodograph') this.rig.trackFollow(velocity);
+    this.rig.update(this.camera, deltaSeconds);
     this.renderer.render(this.scene, this.camera);
   }
 

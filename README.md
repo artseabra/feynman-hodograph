@@ -27,8 +27,13 @@ connected GitHub `main` branch serving as production.
 - Shift-drag or right-drag to pan.
 - Scroll or pinch to dolly.
 - Use the Camera dock for canonical proof, front, overhead, and side views.
-- Sound is opt-in. Its cinematic layers are driven by orbital state and wedge
-  events; they are interpretive sonification, not astronomical recordings.
+- **Orbit with Planet** and **Orbit with Hodograph** are companion cameras:
+  they travel with the selected moving point, while local orbit, pan, and
+  dolly remain available. Any canonical view returns to the free camera.
+- Sound is opt-in. The potential field, velocity field, and resonant marks are
+  derived from the normalized Kepler state; exact equal-time crossings and the
+  two apsides trigger events. It is interpretive sonification, not an
+  astronomical recording.
 
 ## Mathematical and historical note
 

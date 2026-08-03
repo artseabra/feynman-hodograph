@@ -1,9 +1,9 @@
 import './styles/main.css';
 import { AudioEngine } from './audio/audioEngine';
-import { crossedWedgeIndices, hodographCircle, orbitalState, TAU } from './model/orbit';
+import { crossedApsisEvents, crossedWedgeEvents, hodographCircle, orbitalState, TAU } from './model/orbit';
 import { FallbackRenderer } from './scene/fallback';
 import { HodographScene } from './scene/hodographScene';
-import type { AudioMix, CameraView, InstrumentState, ThemeName, ThemePalette } from './types';
+import type { AudioMix, CameraFocus, CameraView, InstrumentState, SonificationLens, ThemeName, ThemePalette } from './types';
 
 const palettes: Record<ThemeName, ThemePalette> = {
   light: {
@@ -96,6 +96,7 @@ const chalkboardThemeButton = getElement<HTMLButtonElement>('#theme-chalkboard')
 const cameraReset = getElement<HTMLButtonElement>('#camera-reset');
 const soundEnable = getElement<HTMLButtonElement>('#sound-enable');
 const soundMute = getElement<HTMLButtonElement>('#sound-mute');
+const soundLens = getElement<HTMLSelectElement>('#sound-lens');
 
 const audioControls = {
   master: getElement<HTMLInputElement>('#sound-master'),
@@ -121,9 +122,11 @@ const state: InstrumentState = {
   theme: getThemePreference(),
   proofOpen: false,
   activeDock: 'playback',
+  cameraFocus: 'free',
   audio: {
     enabled: false,
     muted: false,
+    lens: soundLens.value as SonificationLens,
     master: Number(audioControls.master.value),
     atmosphere: Number(audioControls.atmosphere.value),
     motion: Number(audioControls.motion.value),
@@ -229,6 +232,16 @@ function syncAudio(): void {
   updateControlReadouts();
 }
 
+function setCameraFocus(focus: CameraFocus): void {
+  state.cameraFocus = focus;
+  scene?.setCameraFocus(focus);
+  document.querySelectorAll<HTMLButtonElement>('[data-camera-focus]').forEach(button => {
+    const active = button.dataset.cameraFocus === focus;
+    button.classList.toggle('is-selected', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+}
+
 document.querySelectorAll<HTMLButtonElement>('[data-dock]').forEach(button => {
   button.addEventListener('click', () => {
     const next = dockName(button.dataset.dock);
@@ -238,7 +251,14 @@ document.querySelectorAll<HTMLButtonElement>('[data-dock]').forEach(button => {
 
 document.querySelectorAll<HTMLButtonElement>('[data-camera-view]').forEach(button => {
   button.addEventListener('click', () => {
+    setCameraFocus('free');
     scene?.setView(button.dataset.cameraView as CameraView);
+  });
+});
+
+document.querySelectorAll<HTMLButtonElement>('[data-camera-focus]').forEach(button => {
+  button.addEventListener('click', () => {
+    setCameraFocus(button.dataset.cameraFocus as CameraFocus);
   });
 });
 
@@ -283,7 +303,10 @@ proofToggle.addEventListener('click', () => setProofOpen(!state.proofOpen));
 themeToggle.addEventListener('click', () => applyTheme(state.theme === 'light' ? 'chalkboard' : 'light'));
 lightThemeButton.addEventListener('click', () => applyTheme('light'));
 chalkboardThemeButton.addEventListener('click', () => applyTheme('chalkboard'));
-cameraReset.addEventListener('click', () => scene?.resetCamera());
+cameraReset.addEventListener('click', () => {
+  setCameraFocus('free');
+  scene?.frameAll();
+});
 
 soundEnable.addEventListener('click', async () => {
   const enabled = await audio.enable(currentMix());
@@ -301,6 +324,10 @@ soundMute.addEventListener('click', () => {
 });
 
 Object.values(audioControls).forEach(input => input.addEventListener('input', syncAudio));
+soundLens.addEventListener('change', () => {
+  state.audio.lens = soundLens.value as SonificationLens;
+  audio.setMix(currentMix());
+});
 
 const resizeObserver = new ResizeObserver(resizeScene);
 resizeObserver.observe(stageShell);
@@ -313,8 +340,10 @@ function animate(timestamp: number): void {
 
   const orbital = orbitalState(state.eccentricity, state.meanAnomaly);
   if (state.playing && audio.isEnabled) {
-    crossedWedgeIndices(previousMeanAnomaly, state.meanAnomaly, state.wedges)
-      .forEach(index => audio.triggerWedge(index, orbital));
+    crossedWedgeEvents(previousMeanAnomaly, state.meanAnomaly, state.wedges)
+      .forEach(event => audio.triggerWedge(event, orbitalState(state.eccentricity, event.meanAnomaly)));
+    crossedApsisEvents(previousMeanAnomaly, state.meanAnomaly)
+      .forEach(event => audio.triggerApsis(event.kind, orbitalState(state.eccentricity, event.meanAnomaly)));
   }
   audio.update(orbital, state.playing);
   scene?.update(orbital, timestamp);
