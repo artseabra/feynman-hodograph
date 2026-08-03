@@ -18,13 +18,39 @@ export class CameraRig {
 
   fit(bounds: SceneBounds, camera: THREE.PerspectiveCamera, aspect: number): void {
     const fovRadians = THREE.MathUtils.degToRad(camera.fov);
-    const verticalDistance = bounds.radius / Math.sin(fovRadians / 2);
     const horizontalFov = 2 * Math.atan(Math.tan(fovRadians / 2) * aspect);
-    const horizontalDistance = bounds.radius / Math.sin(horizontalFov / 2);
-    const distance = Math.max(verticalDistance, horizontalDistance) * 1.38;
+    const cosPitch = Math.cos(this.pitchGoal);
+    const cameraOffset = new THREE.Vector3(
+      Math.sin(this.yawGoal) * cosPitch,
+      Math.sin(this.pitchGoal),
+      Math.cos(this.yawGoal) * cosPitch,
+    ).normalize();
+    const forward = cameraOffset.clone().negate();
+    const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+    const up = new THREE.Vector3().crossVectors(right, forward).normalize();
+    const horizontalTangent = Math.tan(horizontalFov / 2);
+    const verticalTangent = Math.tan(fovRadians / 2);
+    const center = new THREE.Vector3(bounds.center.x, bounds.center.y, bounds.center.z);
+    const corners = [bounds.min.x, bounds.max.x].flatMap(x =>
+      [bounds.min.y, bounds.max.y].flatMap(y =>
+        [bounds.min.z, bounds.max.z].map(z => new THREE.Vector3(x, y, z).sub(center)),
+      ),
+    );
+
+    // A bounding sphere is safe but visually wasteful for two perpendicular
+    // planes. Solve against the projected AABB corners at the active view
+    // instead: every construction remains in frame while the proof occupies
+    // the stage as a spatial instrument rather than a tiny tabletop diorama.
+    const requiredDistance = corners.reduce((distance, corner) => {
+      const depthOffset = corner.dot(forward);
+      const horizontal = Math.abs(corner.dot(right)) / horizontalTangent - depthOffset;
+      const vertical = Math.abs(corner.dot(up)) / verticalTangent - depthOffset;
+      return Math.max(distance, horizontal, vertical, 0.3 - depthOffset);
+    }, 0.1);
+    const distance = requiredDistance * 1.13;
 
     this.targetGoal.set(bounds.center.x, bounds.center.y, bounds.center.z);
-    this.minimumDistance = Math.max(1.8, bounds.radius * 0.7);
+    this.minimumDistance = Math.max(1.8, requiredDistance * 0.5);
     this.maximumDistance = Math.max(distance * 4, bounds.radius * 6);
     this.distanceGoal = THREE.MathUtils.clamp(distance, this.minimumDistance, this.maximumDistance);
   }

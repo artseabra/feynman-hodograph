@@ -5,11 +5,14 @@ import { normalizeAngle, TAU } from './orbit';
 // deliberate spatial embedding: the orbital construction lies horizontally,
 // while the hodograph stands in a vertical plane. Their shared phase is drawn
 // as a correspondence bridge rather than faking a single flat dashboard.
-const ORBIT_ORIGIN: Point3 = { x: -2.35, y: -0.58, z: 1.05 };
-const HODOGRAPH_ORIGIN: Point3 = { x: 2.35, y: 0.18, z: -1.45 };
+const ORBIT_ORIGIN: Point3 = { x: -1.85, y: -0.58, z: 0.98 };
+const HODOGRAPH_ORIGIN: Point3 = { x: 1.85, y: 0.18, z: -1.32 };
 const ORBIT_SCALE = 2.2;
 const HODOGRAPH_SCALE = 1.25;
-const ORBIT_GRID_EXTENT = 2.65;
+// The grid is a construction field, not a second scene. Keep it close to the
+// ellipse so it supplies depth and measurement without turning the proof into
+// a tiny object marooned in empty tabletop.
+const ORBIT_GRID_EXTENT = 1.85;
 
 export const sceneLayout = {
   orbitOrigin: ORBIT_ORIGIN,
