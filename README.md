@@ -17,8 +17,9 @@ npm test
 npm run build
 ```
 
-The deployment target is a static Vite build (`dist/`). `vercel.json` is ready
-for a Vercel project after the repository has been reviewed and pushed.
+The deployment target is a static Vite build (`dist/`). It is live at
+[feynman-hodograph.vercel.app](https://feynman-hodograph.vercel.app), with the
+connected GitHub `main` branch serving as production.
 
 ## Interaction
 
