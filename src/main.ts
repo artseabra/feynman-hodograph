@@ -1,6 +1,6 @@
 import './styles/main.css';
 import { AudioEngine } from './audio/audioEngine';
-import { crossedWedgeIndices, hodographCircle, orbitalState, TAU } from './model/orbit';
+import { crossedWedgeIndices, hodographCircle, orbitalState } from './model/orbit';
 import { FallbackRenderer } from './scene/fallback';
 import { HodographScene } from './scene/hodographScene';
 import type { AudioMix, CameraView, InstrumentState, ThemeName, ThemePalette } from './types';
