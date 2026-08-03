@@ -45,18 +45,19 @@
           <div id="stage" class="stage" aria-describedby="stage-instructions"></div>
           <div class="stage-hud stage-hud-left" aria-hidden="true">
             <span class="hud-kicker"><i class="dot dot-orbit"></i>POSITION SPACE</span>
-            <strong>ORBIT</strong>
+            <strong>ORBITAL PLANE</strong>
           </div>
           <div class="stage-hud stage-hud-right" aria-hidden="true">
             <span class="hud-kicker"><i class="dot dot-hodograph"></i>VELOCITY SPACE</span>
-            <strong>HODOGRAPH</strong>
+            <strong>ORTHOGONAL PLANE</strong>
           </div>
           <div class="stage-telemetry">
+            <span>M <b id="phase-readout">—</b></span>
             <span>r <b id="radius-readout">—</b></span>
             <span>|v| <b id="speed-readout">—</b></span>
             <span>offset <b id="offset-readout">—</b></span>
           </div>
-          <p id="stage-instructions" class="stage-instructions">Drag to orbit · Shift-drag or right-drag to pan · Scroll or pinch to dolly</p>
+          <p id="stage-instructions" class="stage-instructions">Drag the spatial proof · Shift-drag or right-drag to pan · Scroll or pinch to dolly</p>
           <p id="render-status" class="render-status" role="status" hidden></p>
         </div>
 
@@ -155,8 +156,8 @@
         </div>
         <ol class="proof-steps">
           <li><span>01</span><p><b>Equal area, equal time.</b> Equal increments of mean anomaly produce equal-time wedges from the focus.</p></li>
-          <li><span>02</span><p><b>Velocity changes.</b> In an inverse-square field, the equal-time velocity-change vectors share a length and turning rule.</p></li>
-          <li><span>03</span><p><b>Chain the changes.</b> Equal-length vectors that turn by a constant angle close into the hodograph circle.</p></li>
+          <li><span>02</span><p><b>One shared phase.</b> Each equal-time wedge and its velocity marker are evaluated at the same mean anomaly, then linked across the two spatial planes.</p></li>
+          <li><span>03</span><p><b>The circle invariant.</b> At every phase, the vector from the hodograph center to velocity has fixed length and is perpendicular to the position vector. Its endpoint therefore traces a circle.</p></li>
           <li><span>04</span><p><b>Read the offset.</b> Eccentricity displaces the hodograph’s center from the velocity origin.</p></li>
           <li><span>05</span><p><b>Return to position.</b> The perpendicular relation between the hodograph radius and velocity recovers the conic orbit.</p></li>
         </ol>

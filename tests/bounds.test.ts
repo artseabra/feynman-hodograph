@@ -1,27 +1,52 @@
 import { describe, expect, it } from 'vitest';
-import { computeInstrumentBounds, sceneLayout } from '../src/model/bounds';
-import { hodographCircle, MAX_ECCENTRICITY } from '../src/model/orbit';
+import { computeInstrumentBounds } from '../src/model/bounds';
+import { correspondenceBridge, hodographWorld, orbitWorld, sceneLayout } from '../src/model/embedding';
+import { equalTimeSamples, MAX_ECCENTRICITY, orbitalState, TAU } from '../src/model/orbit';
 
-describe('dynamic scene bounds', () => {
-  it.each([0, 0.55, MAX_ECCENTRICITY])('contains the full construction at e = %s', eccentricity => {
+function expectContained(
+  bounds: ReturnType<typeof computeInstrumentBounds>,
+  point: { x: number; y: number; z: number },
+): void {
+  expect(bounds.min.x).toBeLessThanOrEqual(point.x);
+  expect(bounds.max.x).toBeGreaterThanOrEqual(point.x);
+  expect(bounds.min.y).toBeLessThanOrEqual(point.y);
+  expect(bounds.max.y).toBeGreaterThanOrEqual(point.y);
+  expect(bounds.min.z).toBeLessThanOrEqual(point.z);
+  expect(bounds.max.z).toBeGreaterThanOrEqual(point.z);
+}
+
+describe('spatial bounds and correspondence', () => {
+  it.each([0, 0.55, MAX_ECCENTRICITY])('contains the full embedded construction at e = %s', eccentricity => {
     const bounds = computeInstrumentBounds(eccentricity, 16);
-    const auxiliaryMaximum = sceneLayout.positionOffset.x + (eccentricity + 1) * sceneLayout.positionScale;
-    const auxiliaryMinimum = sceneLayout.positionOffset.x + (eccentricity - 1) * sceneLayout.positionScale;
-    const hodograph = hodographCircle(eccentricity);
-    const hodographTop = sceneLayout.hodographOffset.y + (hodograph.center.y + hodograph.radius) * sceneLayout.hodographScale;
-    const hodographBottom = sceneLayout.hodographOffset.y + (hodograph.center.y - hodograph.radius) * sceneLayout.hodographScale;
-
-    expect(bounds.min.x).toBeLessThanOrEqual(auxiliaryMinimum);
-    expect(bounds.max.x).toBeGreaterThanOrEqual(auxiliaryMaximum);
-    expect(bounds.min.y).toBeLessThanOrEqual(hodographBottom);
-    expect(bounds.max.y).toBeGreaterThanOrEqual(hodographTop);
+    for (let index = 0; index <= 64; index += 1) {
+      const state = orbitalState(eccentricity, index / 64 * TAU);
+      expectContained(bounds, orbitWorld(state.position));
+      expectContained(bounds, hodographWorld(state.velocity));
+      correspondenceBridge(state).forEach(point => expectContained(bounds, point));
+    }
     expect(bounds.radius).toBeGreaterThan(0);
   });
 
-  it('contains both expanded grids as camera-frame geometry', () => {
-    const bounds = computeInstrumentBounds(MAX_ECCENTRICITY, 36);
-    expect(bounds.min.x).toBeLessThanOrEqual(sceneLayout.positionOffset.x - 2.35);
-    expect(bounds.max.x).toBeGreaterThanOrEqual(sceneLayout.hodographOffset.x + 2.9);
-    expect(bounds.min.y).toBeLessThanOrEqual(sceneLayout.hodographOffset.y - 2.9);
+  it('embeds position and velocity in orthogonal spatial planes', () => {
+    const orbitOrigin = orbitWorld({ x: 0, y: 0 });
+    const orbitYDirection = orbitWorld({ x: 0, y: 1 });
+    const hodographOrigin = hodographWorld({ x: 0, y: 0 });
+    const hodographYDirection = hodographWorld({ x: 0, y: 1 });
+
+    expect(orbitYDirection.z).not.toBe(orbitOrigin.z);
+    expect(orbitYDirection.y).toBe(orbitOrigin.y);
+    expect(hodographYDirection.y).not.toBe(hodographOrigin.y);
+    expect(hodographYDirection.z).toBe(hodographOrigin.z);
+  });
+
+  it('contains both physical grids and every equal-time correspondence bridge', () => {
+    const eccentricity = MAX_ECCENTRICITY;
+    const bounds = computeInstrumentBounds(eccentricity, 36);
+    const extent = sceneLayout.orbitGridExtent;
+    expectContained(bounds, orbitWorld({ x: -extent, y: -extent }, -0.14));
+    expectContained(bounds, orbitWorld({ x: extent, y: extent }, -0.14));
+    equalTimeSamples(eccentricity, 36).forEach(sample => {
+      correspondenceBridge(sample).forEach(point => expectContained(bounds, point));
+    });
   });
 });

@@ -1,18 +1,8 @@
 import type { Point3, SceneBounds } from '../types';
-import { clampEccentricity, equalTimeSamples, hodographCircle } from './orbit';
+import { correspondenceBridge, hodographGridExtent, hodographWorld, orbitWorld, sceneLayout } from './embedding';
+import { clampEccentricity, equalTimeSamples, hodographCircle, orbitalState, TAU } from './orbit';
 
-const POSITION_OFFSET = { x: -3.7, y: 0, z: 0.55 };
-const HODOGRAPH_OFFSET = { x: 3.7, y: 0, z: -0.55 };
-const POSITION_SCALE = 1.9;
-const HODOGRAPH_SCALE = 1.35;
-const LABEL_MARGIN = 0.55;
-
-export const sceneLayout = {
-  positionOffset: POSITION_OFFSET,
-  hodographOffset: HODOGRAPH_OFFSET,
-  positionScale: POSITION_SCALE,
-  hodographScale: HODOGRAPH_SCALE,
-};
+export { sceneLayout } from './embedding';
 
 class BoundsAccumulator {
   private min = { x: Infinity, y: Infinity, z: Infinity };
@@ -25,11 +15,6 @@ class BoundsAccumulator {
     this.max.x = Math.max(this.max.x, point.x + padding);
     this.max.y = Math.max(this.max.y, point.y + padding);
     this.max.z = Math.max(this.max.z, point.z + padding);
-  }
-
-  includeCircle(center: Point3, radius: number, depth = 0.08): void {
-    this.include({ x: center.x - radius, y: center.y - radius, z: center.z }, depth);
-    this.include({ x: center.x + radius, y: center.y + radius, z: center.z }, depth);
   }
 
   finish(): SceneBounds {
@@ -53,47 +38,42 @@ class BoundsAccumulator {
   }
 }
 
+function includeGrid(bounds: BoundsAccumulator, eccentricity: number): void {
+  const orbitExtent = sceneLayout.orbitGridExtent;
+  [-orbitExtent, orbitExtent].forEach(x => {
+    [-orbitExtent, orbitExtent].forEach(y => bounds.include(orbitWorld({ x, y }, -0.14), 0.08));
+  });
+
+  const circle = hodographCircle(eccentricity);
+  const extent = hodographGridExtent(circle.center.y + circle.radius);
+  [-extent, extent].forEach(x => {
+    [-extent, extent].forEach(y => bounds.include(hodographWorld({ x, y }, -0.14), 0.08));
+  });
+}
+
 export function computeInstrumentBounds(eccentricity: number, wedges: number): SceneBounds {
   const bounds = new BoundsAccumulator();
   const e = clampEccentricity(eccentricity);
   const samples = equalTimeSamples(e, wedges);
 
-  samples.forEach(sample => {
-    bounds.include({
-      x: POSITION_OFFSET.x + sample.position.x * POSITION_SCALE,
-      y: POSITION_OFFSET.y + sample.position.y * POSITION_SCALE,
-      z: POSITION_OFFSET.z,
-    }, 0.16);
-    bounds.include({
-      x: HODOGRAPH_OFFSET.x + sample.velocity.x * HODOGRAPH_SCALE,
-      y: HODOGRAPH_OFFSET.y + sample.velocity.y * HODOGRAPH_SCALE,
-      z: HODOGRAPH_OFFSET.z,
-    }, 0.16);
-  });
+  // The full ellipse, its reference circle, and the full hodograph must remain
+  // in frame at every valid eccentricity—not merely the equal-time samples.
+  for (let index = 0; index <= 192; index += 1) {
+    const anomaly = index / 192 * TAU;
+    const state = orbitalState(e, anomaly);
+    bounds.include(orbitWorld(state.position), 0.2);
+    bounds.include(hodographWorld(state.velocity), 0.2);
+    bounds.include(orbitWorld({ x: Math.cos(anomaly) - e, y: Math.sin(anomaly) }), 0.1);
+  }
 
-  const auxiliaryCenter = {
-    x: POSITION_OFFSET.x + e * POSITION_SCALE,
-    y: POSITION_OFFSET.y,
-    z: POSITION_OFFSET.z,
-  };
-  bounds.includeCircle(auxiliaryCenter, POSITION_SCALE, 0.12);
-  bounds.include({ x: POSITION_OFFSET.x, y: POSITION_OFFSET.y, z: POSITION_OFFSET.z }, LABEL_MARGIN);
-
+  bounds.include(orbitWorld({ x: 0, y: 0 }, 0.22), 0.24);
   const circle = hodographCircle(e);
-  bounds.includeCircle({
-    x: HODOGRAPH_OFFSET.x + circle.center.x * HODOGRAPH_SCALE,
-    y: HODOGRAPH_OFFSET.y + circle.center.y * HODOGRAPH_SCALE,
-    z: HODOGRAPH_OFFSET.z,
-  }, circle.radius * HODOGRAPH_SCALE, 0.12);
-  bounds.include({ x: HODOGRAPH_OFFSET.x, y: HODOGRAPH_OFFSET.y, z: HODOGRAPH_OFFSET.z }, LABEL_MARGIN);
+  bounds.include(hodographWorld({ x: 0, y: 0 }, 0.12), 0.16);
+  bounds.include(hodographWorld(circle.center, 0.12), 0.16);
 
-  // The grid and caption reserve are renderable scene geometry too. Including
-  // them prevents a mathematically complete curve from fitting while its frame
-  // is still cropped at a canonical camera view.
-  bounds.include({ x: POSITION_OFFSET.x - 2.35, y: POSITION_OFFSET.y - 2.35, z: POSITION_OFFSET.z - 0.16 });
-  bounds.include({ x: POSITION_OFFSET.x + 2.35, y: POSITION_OFFSET.y + 2.35, z: POSITION_OFFSET.z + 0.24 });
-  bounds.include({ x: HODOGRAPH_OFFSET.x - 2.9, y: HODOGRAPH_OFFSET.y - 2.9, z: HODOGRAPH_OFFSET.z - 0.16 });
-  bounds.include({ x: HODOGRAPH_OFFSET.x + 2.9, y: HODOGRAPH_OFFSET.y + 2.9, z: HODOGRAPH_OFFSET.z + 0.24 });
-
+  samples.forEach(sample => {
+    correspondenceBridge(sample).forEach(point => bounds.include(point, 0.16));
+  });
+  includeGrid(bounds, e);
   return bounds.finish();
 }

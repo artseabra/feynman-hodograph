@@ -9,6 +9,7 @@ import {
   orbitalState,
   solveKepler,
 } from '../src/model/orbit';
+import { activeWedgeIndex } from '../src/model/embedding';
 
 describe('Kepler model', () => {
   it('solves Kepler’s equation over the supported eccentricity range', () => {
@@ -39,6 +40,19 @@ describe('Kepler model', () => {
     });
   });
 
+  it('keeps the hodograph radius perpendicular to the same-phase position vector', () => {
+    [0, 0.55, MAX_ECCENTRICITY].forEach(eccentricity => {
+      const circle = hodographCircle(eccentricity);
+      for (let step = 0; step <= 64; step += 1) {
+        const state = orbitalState(eccentricity, step / 64 * TAU);
+        const radialX = state.velocity.x - circle.center.x;
+        const radialY = state.velocity.y - circle.center.y;
+        const dot = radialX * state.position.x + radialY * state.position.y;
+        expect(dot).toBeCloseTo(0, 9);
+      }
+    });
+  });
+
   it('samples equal mean-anomaly steps for equal-time wedges', () => {
     const samples = equalTimeSamples(0.55, 16);
     expect(samples).toHaveLength(16);
@@ -49,6 +63,12 @@ describe('Kepler model', () => {
 });
 
 describe('wedge scheduler', () => {
+  it('assigns one shared phase index to the orbital wedge and hodograph step', () => {
+    expect(activeWedgeIndex(0, 16)).toBe(0);
+    expect(activeWedgeIndex(TAU * 7.8 / 16, 16)).toBe(7);
+    expect(activeWedgeIndex(TAU * 15.99 / 16, 16)).toBe(15);
+  });
+
   it('emits one index per crossed equal-time boundary', () => {
     expect(crossedWedgeIndices(0, TAU / 16, 16)).toEqual([1]);
     expect(crossedWedgeIndices(TAU / 16, TAU * 3 / 16, 16)).toEqual([2, 3]);

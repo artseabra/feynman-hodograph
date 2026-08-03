@@ -1,6 +1,6 @@
 import './styles/main.css';
 import { AudioEngine } from './audio/audioEngine';
-import { crossedWedgeIndices, hodographCircle, orbitalState } from './model/orbit';
+import { crossedWedgeIndices, hodographCircle, orbitalState, TAU } from './model/orbit';
 import { FallbackRenderer } from './scene/fallback';
 import { HodographScene } from './scene/hodographScene';
 import type { AudioMix, CameraView, InstrumentState, ThemeName, ThemePalette } from './types';
@@ -78,6 +78,7 @@ const stageShell = getElement<HTMLElement>('#stage-shell');
 const radiusReadout = getElement<HTMLElement>('#radius-readout');
 const speedReadout = getElement<HTMLElement>('#speed-readout');
 const offsetReadout = getElement<HTMLElement>('#offset-readout');
+const phaseReadout = getElement<HTMLElement>('#phase-readout');
 const renderStatus = getElement<HTMLElement>('#render-status');
 const playToggle = getElement<HTMLButtonElement>('#play-toggle');
 const restart = getElement<HTMLButtonElement>('#restart');
@@ -162,6 +163,7 @@ function updateControlReadouts(): void {
 function updateReadouts(): void {
   const orbital = orbitalState(state.eccentricity, state.meanAnomaly);
   const circle = hodographCircle(state.eccentricity);
+  phaseReadout.textContent = `${(orbital.meanAnomaly / TAU * 360).toFixed(1)}°`;
   radiusReadout.textContent = formatNumber(orbital.radius);
   speedReadout.textContent = formatNumber(orbital.speed);
   offsetReadout.textContent = formatNumber(circle.center.y);
