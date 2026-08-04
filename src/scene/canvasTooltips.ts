@@ -131,6 +131,9 @@ function eventIsCoarse(event: PointerEvent): boolean {
   return event.pointerType === 'touch' || window.matchMedia?.('(pointer: coarse)').matches === true;
 }
 
+const HOVER_DELAY_MS = 200;
+const TRANSITION_MS = 200;
+
 /**
  * A canvas-native adaptation of Luster Portal's tooltip contract.
  *
@@ -150,6 +153,8 @@ export class CanvasTooltipController {
   private targets: RegisteredTarget[] = [];
   private active: RegisteredTarget | null = null;
   private activeMode: OpenMode | null = null;
+  private pendingHover: RegisteredTarget | null = null;
+  private showTimer: number | null = null;
   private hideTimer: number | null = null;
   private pointerStart: { pointerId: number; x: number; y: number; moved: boolean } | null = null;
   private palette: ThemePalette;
@@ -256,6 +261,7 @@ export class CanvasTooltipController {
   }
 
   destroy(): void {
+    if (this.showTimer !== null) window.clearTimeout(this.showTimer);
     if (this.hideTimer !== null) window.clearTimeout(this.hideTimer);
     this.canvas.removeEventListener('pointermove', this.pointerMove);
     this.canvas.removeEventListener('pointerleave', this.pointerLeave);
@@ -277,15 +283,23 @@ export class CanvasTooltipController {
     }
     if (event.buttons !== 0 || eventIsCoarse(event) || this.activeMode === 'pinned' || this.activeMode === 'touch') return;
     const target = this.pick(event.clientX, event.clientY);
-    if (target) this.show(target, 'hover');
-    else if (this.activeMode === 'hover') this.hide();
+    if (target) {
+      if (this.active === target && this.activeMode === 'hover') return;
+      if (this.activeMode === 'hover') this.hide();
+      this.scheduleHover(target);
+    } else {
+      this.cancelScheduledShow();
+      if (this.activeMode === 'hover') this.hide();
+    }
   };
 
   private readonly pointerLeave = (): void => {
+    this.cancelScheduledShow();
     if (this.activeMode === 'hover') this.hide();
   };
 
   private readonly pointerDown = (event: PointerEvent): void => {
+    this.cancelScheduledShow();
     this.pointerStart = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
   };
 
@@ -356,6 +370,7 @@ export class CanvasTooltipController {
   }
 
   private show(target: RegisteredTarget, mode: OpenMode): void {
+    this.cancelScheduledShow();
     if (this.hideTimer !== null) {
       window.clearTimeout(this.hideTimer);
       this.hideTimer = null;
@@ -375,6 +390,7 @@ export class CanvasTooltipController {
   }
 
   private hide(immediate = false): void {
+    this.cancelScheduledShow();
     this.active = null;
     this.activeMode = null;
     this.tooltip.dataset.open = 'false';
@@ -387,7 +403,24 @@ export class CanvasTooltipController {
     this.hideTimer = window.setTimeout(() => {
       if (!this.active) this.tooltip.hidden = true;
       this.hideTimer = null;
-    }, 105);
+    }, TRANSITION_MS);
+  }
+
+  private scheduleHover(target: RegisteredTarget): void {
+    if (this.pendingHover === target && this.showTimer !== null) return;
+    this.cancelScheduledShow();
+    this.pendingHover = target;
+    this.showTimer = window.setTimeout(() => {
+      this.showTimer = null;
+      this.pendingHover = null;
+      this.show(target, 'hover');
+    }, HOVER_DELAY_MS);
+  }
+
+  private cancelScheduledShow(): void {
+    if (this.showTimer !== null) window.clearTimeout(this.showTimer);
+    this.showTimer = null;
+    this.pendingHover = null;
   }
 
   private setAccent(key: AccentKey): void {

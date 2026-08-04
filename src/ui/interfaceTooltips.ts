@@ -32,6 +32,9 @@ interface TooltipDefinition {
 
 type OpenMode = 'hover' | 'focus' | 'touch';
 
+const HOVER_DELAY_MS = 200;
+const TRANSITION_MS = 200;
+
 const TOOLTIP_COPY: Record<InterfaceTooltipId, TooltipDefinition> = {
   theme: {
     label: 'Surface',
@@ -167,6 +170,7 @@ export class InterfaceTooltipController {
   private readonly triggers: HTMLElement[];
   private active: HTMLElement | null = null;
   private activeMode: OpenMode | null = null;
+  private showTimer: number | null = null;
   private hideTimer: number | null = null;
   private pointerStart: { element: HTMLElement; x: number; y: number; moved: boolean } | null = null;
 
@@ -205,6 +209,7 @@ export class InterfaceTooltipController {
   }
 
   destroy(): void {
+    if (this.showTimer !== null) window.clearTimeout(this.showTimer);
     if (this.hideTimer !== null) window.clearTimeout(this.hideTimer);
     this.triggers.forEach(trigger => {
       trigger.removeEventListener('pointerenter', this.pointerEnter);
@@ -229,10 +234,11 @@ export class InterfaceTooltipController {
 
   private readonly pointerEnter = (event: PointerEvent): void => {
     if (event.pointerType === 'touch' || window.matchMedia?.('(hover: none)').matches) return;
-    this.show(event.currentTarget as HTMLElement, 'hover');
+    this.scheduleHover(event.currentTarget as HTMLElement);
   };
 
   private readonly pointerLeave = (): void => {
+    this.cancelScheduledShow();
     if (this.activeMode === 'hover') this.hide();
   };
 
@@ -290,6 +296,7 @@ export class InterfaceTooltipController {
   private show(trigger: HTMLElement, mode: OpenMode): void {
     const id = tooltipId(trigger);
     if (!id) return;
+    this.cancelScheduledShow();
     const definition = TOOLTIP_COPY[id];
     if (this.hideTimer !== null) {
       window.clearTimeout(this.hideTimer);
@@ -308,6 +315,7 @@ export class InterfaceTooltipController {
   }
 
   private hide(immediate = false): void {
+    this.cancelScheduledShow();
     this.active = null;
     this.activeMode = null;
     this.tooltip.dataset.open = 'false';
@@ -320,7 +328,21 @@ export class InterfaceTooltipController {
     this.hideTimer = window.setTimeout(() => {
       if (!this.active) this.tooltip.hidden = true;
       this.hideTimer = null;
-    }, 105);
+    }, TRANSITION_MS);
+  }
+
+  private scheduleHover(trigger: HTMLElement): void {
+    this.cancelScheduledShow();
+    this.showTimer = window.setTimeout(() => {
+      this.showTimer = null;
+      this.show(trigger, 'hover');
+    }, HOVER_DELAY_MS);
+  }
+
+  private cancelScheduledShow(): void {
+    if (this.showTimer === null) return;
+    window.clearTimeout(this.showTimer);
+    this.showTimer = null;
   }
 
   private position(trigger: HTMLElement): void {
