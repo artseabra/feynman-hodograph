@@ -136,7 +136,7 @@ export class HodographScene {
   private layout: ConstructionLayout = 'separated';
   private latestState: OrbitalState;
   private bounds: SceneBounds;
-  private cameraView: CameraView | null = 'centered';
+  private cameraView: CameraView | null = 'spatial';
   private cameraFocus: CameraFocus = 'free';
   private lastTimestamp = performance.now();
   private activeWedge = -1;

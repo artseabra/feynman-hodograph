@@ -33,7 +33,7 @@ describe('public instrument contract', () => {
       expect(html.match(new RegExp(`data-camera-view="${view}"`, 'g'))).toHaveLength(1);
     }
     expect(html).toMatch(/id="construction-layout-toggle"[^>]*data-construction-layout="separated"/);
-    expect(html).toMatch(/aria-pressed="true"[^>]*data-camera-view="centered"/);
+    expect(html).toMatch(/aria-pressed="true"[^>]*data-camera-view="spatial"/);
     expect(main).toContain("constructionLayout: 'separated'");
     expect(html).not.toContain('view-switcher-popover');
     expect(html).not.toMatch(/data-camera-view="(?:proof|front|overview)"/);
@@ -130,7 +130,7 @@ describe('public instrument contract', () => {
     expect(main).toContain('if (outroSceneVisible) outroScene?.update(orbital, timestamp)');
     expect(outroScene).toContain("powerPreference: 'low-power'");
     expect(outroScene).toContain("const OUTRO_LAYOUT = 'separated' as const");
-    expect(outroScene).toContain("this.rig.setView('centered'");
+    expect(outroScene).toContain("this.rig.setView('spatial'");
     expect(outroScene).toContain('correspondenceBridge(state, OUTRO_LAYOUT)');
     expect(outroScene).toContain('orbitWorld(state.position');
     expect(outroScene).toContain('hodographWorld(state.velocity');

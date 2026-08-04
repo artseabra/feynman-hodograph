@@ -251,7 +251,7 @@ export class OutroHodographScene {
 
   private refitCamera(): void {
     const bounds = computeInstrumentBounds(this.eccentricity, OUTRO_WEDGES, OUTRO_LAYOUT);
-    this.rig.setView('centered', bounds, this.camera, this.camera.aspect, bounds.center);
+    this.rig.setView('spatial', bounds, this.camera, this.camera.aspect, bounds.center);
     this.rig.update(this.camera, 0);
   }
 }
