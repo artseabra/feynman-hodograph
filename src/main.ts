@@ -226,7 +226,10 @@ function resizeScene(): void {
 }
 
 function dismissStageGuide(): void {
-  stageGuide.hidden = true;
+  // Remove rather than relying on the browser's `hidden` stylesheet: this
+  // guide is a transient input layer and must never remain above the canvas
+  // after the user has explicitly dismissed it.
+  stageGuide.remove();
 }
 
 function syncAudio(): void {
@@ -255,6 +258,7 @@ document.querySelectorAll<HTMLButtonElement>('[data-dock]').forEach(button => {
   });
 });
 
+stageGuideDismiss.addEventListener('pointerdown', dismissStageGuide);
 stageGuideDismiss.addEventListener('click', dismissStageGuide);
 stage.addEventListener('hodograph:interact', dismissStageGuide, { once: true });
 

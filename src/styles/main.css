@@ -292,6 +292,10 @@ h2 {
   backdrop-filter: blur(16px);
 }
 
+.stage-guide[hidden] {
+  display: none !important;
+}
+
 .stage-guide-kicker {
   display: block;
   margin-bottom: 5px;
