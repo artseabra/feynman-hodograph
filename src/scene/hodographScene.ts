@@ -96,7 +96,7 @@ export class HodographScene {
   private readonly planet: THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
   private readonly planetGlow: THREE.PointLight;
   private readonly sun: THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
-  private readonly sunOutline: THREE.LineLoop<THREE.BufferGeometry, THREE.LineBasicMaterial>;
+  private readonly sunOutline: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>;
   private readonly hodographPoint: THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
   private readonly hodographCenter: THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
   private readonly positionArrow: THREE.ArrowHelper;
@@ -149,15 +149,13 @@ export class HodographScene {
       new THREE.MeshStandardMaterial({ color: palette.sun, emissive: palette.sun, emissiveIntensity: 0.8, roughness: 0.35 }),
     );
     this.sun.castShadow = true;
-    this.sunOutline = new THREE.LineLoop(
-      lineGeometry(Array.from({ length: 96 }, (_, index) => {
-        const angle = index / 96 * TAU;
-        return new THREE.Vector3(Math.cos(angle) * 0.23, Math.sin(angle) * 0.23, 0);
-      })),
-      new THREE.LineBasicMaterial({
+    this.sunOutline = new THREE.Mesh(
+      new THREE.RingGeometry(0.227, 0.23, 96),
+      new THREE.MeshBasicMaterial({
         color: palette.sun,
         transparent: true,
-        opacity: 0.52,
+        opacity: 0.68,
+        side: THREE.DoubleSide,
         depthTest: false,
         depthWrite: false,
         toneMapped: false,

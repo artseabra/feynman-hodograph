@@ -37,6 +37,7 @@ const palettes: Record<ThemeName, ThemePalette> = {
 };
 
 const dockNames = ['playback', 'geometry', 'camera', 'sound'] as const;
+const EXPLORE_GUIDE_STORAGE_KEY = 'feynman-hodograph.explore-guide-seen.v2';
 type DockName = (typeof dockNames)[number];
 
 function getElement<T extends HTMLElement>(selector: string): T {
@@ -58,6 +59,22 @@ function safeStoreTheme(theme: ThemeName): void {
     localStorage.setItem('feynman-hodograph.theme', theme);
   } catch {
     // Private browsing and locked-down contexts can still use the instrument.
+  }
+}
+
+function hasSeenExploreGuide(): boolean {
+  try {
+    return localStorage.getItem(EXPLORE_GUIDE_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function storeExploreGuideSeen(): void {
+  try {
+    localStorage.setItem(EXPLORE_GUIDE_STORAGE_KEY, 'true');
+  } catch {
+    // The guide still dismisses for this visit when storage is unavailable.
   }
 }
 
@@ -107,6 +124,13 @@ const narrationPlayIcon = getElement<HTMLElement>('.narration-play-icon');
 const narrationPlayLabel = getElement<HTMLElement>('#narration-play-label');
 const narrationSeek = getElement<HTMLInputElement>('#narration-seek');
 const narrationTime = getElement<HTMLOutputElement>('#narration-time');
+
+if (hasSeenExploreGuide()) {
+  stageGuide.remove();
+  stageShell.dataset.guideVisible = 'false';
+} else {
+  stageShell.dataset.guideVisible = 'true';
+}
 
 const audioControls = {
   master: getElement<HTMLInputElement>('#sound-master'),
@@ -284,6 +308,9 @@ function dismissStageGuide(): void {
   // Remove rather than relying on the browser's `hidden` stylesheet: this
   // guide is a transient input layer and must never remain above the canvas
   // after the user has explicitly dismissed it.
+  if (!stageGuide.isConnected) return;
+  stageShell.dataset.guideVisible = 'false';
+  storeExploreGuideSeen();
   stageGuide.remove();
 }
 

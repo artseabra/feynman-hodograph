@@ -321,6 +321,7 @@ h2 {
   position: absolute;
   z-index: 1;
   inset: 0;
+  transition: opacity 180ms ease;
 }
 
 .stage canvas {
@@ -337,18 +338,19 @@ h2 {
 
 .stage-guide {
   position: absolute;
-  z-index: 4;
-  top: clamp(196px, 28svh, 236px);
+  z-index: 6;
+  top: 50%;
   left: 50%;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 20px;
-  width: min(440px, calc(100% - 44px));
-  transform: translateX(-50%);
-  padding: 14px 15px 14px 17px;
-  border: 1px solid color-mix(in srgb, var(--rule-bright) 88%, var(--hodograph));
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--panel-strong) 92%, transparent);
+  gap: 28px;
+  width: min(450px, calc(100% - 48px));
+  transform: translate(-50%, -50%);
+  padding: 19px 18px 19px 21px;
+  border: 1px solid var(--rule-bright);
+  border-radius: 8px;
+  background: var(--paper-strong);
 }
 
 .stage-guide[hidden] {
@@ -357,7 +359,7 @@ h2 {
 
 .stage-guide-kicker {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
   color: var(--hodograph);
   font: 600 9px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   letter-spacing: 0.12em;
@@ -365,11 +367,16 @@ h2 {
 }
 
 .stage-guide p {
-  max-width: 33ch;
+  max-width: 35ch;
   margin: 0;
   color: var(--ink-soft);
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.stage-guide p strong {
+  color: var(--ink);
+  font-weight: 600;
 }
 
 kbd {
@@ -387,18 +394,36 @@ kbd {
 .stage-guide-dismiss {
   flex: 0 0 auto;
   border: 1px solid var(--rule-bright);
-  border-radius: 5px;
-  padding: 8px 10px;
-  background: color-mix(in srgb, var(--hodograph) 11%, transparent);
+  border-radius: 6px;
+  padding: 9px 11px;
+  background: transparent;
   color: var(--ink);
   cursor: pointer;
   font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .stage-guide-dismiss:hover {
   border-color: var(--hodograph);
-  background: color-mix(in srgb, var(--hodograph) 18%, transparent);
+  background: color-mix(in srgb, var(--hodograph) 8%, transparent);
+}
+
+.stage-hud,
+.stage-telemetry,
+.stage-instructions,
+.dock,
+.story-threshold {
+  transition: opacity 180ms ease;
+}
+
+.stage-shell[data-guide-visible='true'] .stage {
+  opacity: 0.18;
+}
+
+.stage-shell[data-guide-visible='true'] :is(.stage-hud, .stage-telemetry, .stage-instructions, .dock, .story-threshold) {
+  opacity: 0.24;
+  pointer-events: none;
 }
 
 .stage-hud {
@@ -895,7 +920,6 @@ input[type='range'] {
     min-height: 0;
   }
 
-  .stage-guide { top: 246px; }
   .stage-hud { top: 257px; }
 
   .dock-panel {
@@ -946,15 +970,16 @@ input[type='range'] {
   .stage-telemetry { bottom: 58px; left: 15px; gap: 8px; }
   .stage-instructions { right: 15px; bottom: 58px; max-width: 23ch; font-size: 9px; }
   .stage-guide {
-    top: auto;
-    bottom: 104px;
+    top: 50%;
+    bottom: auto;
+    grid-template-columns: 1fr;
     align-items: flex-start;
-    gap: 12px;
-    padding: 12px;
-    transform: translateX(-50%);
+    gap: 16px;
+    padding: 17px;
+    transform: translate(-50%, -50%);
   }
   .stage-guide p { font-size: 11px; }
-  .stage-guide-dismiss { padding: 8px; }
+  .stage-guide-dismiss { justify-self: start; padding: 9px 10px; }
 
   .story-threshold {
     right: 15px;
