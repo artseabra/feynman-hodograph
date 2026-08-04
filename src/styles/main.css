@@ -698,6 +698,10 @@ input[type='range'] {
   margin-bottom: 36px;
 }
 
+.narration-player + .story-heading {
+  margin-top: clamp(46px, 6vw, 72px);
+}
+
 .story-heading > p:not(.eyebrow) {
   max-width: 64ch;
   margin: 10px 0 0;
@@ -907,6 +911,7 @@ input[type='range'] {
 
   .story { margin-top: 68px; padding-bottom: 78px; }
   .story-heading { margin-bottom: 30px; }
+  .narration-player + .story-heading { margin-top: 44px; }
   .story-beat,
   .story-construction,
   .narration-player {

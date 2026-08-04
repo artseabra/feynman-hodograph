@@ -159,6 +159,27 @@
       </section>
 
       <section id="story" class="story" aria-labelledby="story-title">
+        <section class="narration-player" aria-labelledby="narration-title">
+          <div class="narration-label">
+            <p class="eyebrow">NARRATION</p>
+          </div>
+          <div class="narration-player-copy">
+            <h3 id="narration-title">The lost lecture, told again.</h3>
+            <p>Read by Alistair · ElevenLabs · 4:33</p>
+            <div class="narration-controls">
+              <button id="narration-play" class="narration-play" type="button" aria-controls="narration-audio" aria-pressed="false">
+                <span class="narration-play-icon" aria-hidden="true">▶</span>
+                <span id="narration-play-label">Play</span>
+              </button>
+              <input id="narration-seek" type="range" min="0" max="1" step="0.01" value="0" aria-label="Narration position" disabled />
+              <output id="narration-time" for="narration-seek">0:00 / 4:33</output>
+            </div>
+          </div>
+          <audio id="narration-audio" preload="metadata">
+            <source src="/audio/feynman-lost-lecture-alistair.mp3" type="audio/mpeg" />
+          </audio>
+        </section>
+
         <header class="story-heading">
           <p class="eyebrow">FROM BLACKBOARD TO RECOVERY</p>
           <h2 id="story-title">A lecture that survived as a voice without its drawings.</h2>
@@ -200,26 +221,6 @@
           </div>
         </aside>
 
-        <section class="narration-player" aria-labelledby="narration-title">
-          <div class="narration-label">
-            <p class="eyebrow">NARRATION</p>
-          </div>
-          <div class="narration-player-copy">
-            <h3 id="narration-title">The lost lecture, told again.</h3>
-            <p>Read by Alistair · ElevenLabs · 4:33</p>
-            <div class="narration-controls">
-              <button id="narration-play" class="narration-play" type="button" aria-controls="narration-audio" aria-pressed="false">
-                <span class="narration-play-icon" aria-hidden="true">▶</span>
-                <span id="narration-play-label">Play</span>
-              </button>
-              <input id="narration-seek" type="range" min="0" max="1" step="0.01" value="0" aria-label="Narration position" disabled />
-              <output id="narration-time" for="narration-seek">0:00 / 4:33</output>
-            </div>
-          </div>
-          <audio id="narration-audio" preload="metadata">
-            <source src="/audio/feynman-lost-lecture-alistair.mp3" type="audio/mpeg" />
-          </audio>
-        </section>
         <p class="source-note">Historical account adapted from David and Judith Goodstein’s <a href="https://calteches.library.caltech.edu/3822/" target="_blank" rel="noreferrer">Caltech account of <i>Feynman’s Lost Lecture</i></a>. The hodograph circle predates Feynman and is associated with Hamilton (1846). This instrument is a contemporary spatial interpretation, not a reproduction of the original classroom performance.</p>
       </section>
     </main>
