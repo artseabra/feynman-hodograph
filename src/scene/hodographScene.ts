@@ -96,6 +96,7 @@ export class HodographScene {
   private readonly planet: THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
   private readonly planetGlow: THREE.PointLight;
   private readonly sun: THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
+  private readonly sunOutline: THREE.LineLoop<THREE.BufferGeometry, THREE.LineBasicMaterial>;
   private readonly hodographPoint: THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
   private readonly hodographCenter: THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
   private readonly positionArrow: THREE.ArrowHelper;
@@ -148,6 +149,22 @@ export class HodographScene {
       new THREE.MeshStandardMaterial({ color: palette.sun, emissive: palette.sun, emissiveIntensity: 0.8, roughness: 0.35 }),
     );
     this.sun.castShadow = true;
+    this.sunOutline = new THREE.LineLoop(
+      lineGeometry(Array.from({ length: 96 }, (_, index) => {
+        const angle = index / 96 * TAU;
+        return new THREE.Vector3(Math.cos(angle) * 0.23, Math.sin(angle) * 0.23, 0);
+      })),
+      new THREE.LineBasicMaterial({
+        color: palette.sun,
+        transparent: true,
+        opacity: 0.52,
+        depthTest: false,
+        depthWrite: false,
+        toneMapped: false,
+      }),
+    );
+    this.sunOutline.visible = false;
+    this.sunOutline.renderOrder = 20;
     this.hodographPoint = new THREE.Mesh(
       new THREE.SphereGeometry(0.14, 28, 28),
       new THREE.MeshStandardMaterial({ color: palette.hodograph, roughness: 0.2, metalness: 0.24 }),
@@ -165,6 +182,7 @@ export class HodographScene {
     this.live.add(
       this.planet,
       this.sun,
+      this.sunOutline,
       this.hodographPoint,
       this.hodographCenter,
       this.positionArrow,
@@ -198,6 +216,7 @@ export class HodographScene {
     this.planetGlow.color.set(palette.orbit);
     this.sun.material.color.set(palette.sun);
     this.sun.material.emissive.set(palette.sun);
+    this.sunOutline.material.color.set(palette.sun);
     this.hodographPoint.material.color.set(palette.hodograph);
     this.hodographCenter.material.color.set(palette.vector);
     this.hodographCenter.material.emissive.set(palette.vector);
@@ -218,6 +237,11 @@ export class HodographScene {
 
   setCameraFocus(focus: CameraFocus): void {
     this.cameraFocus = focus;
+    // A first-person camera should not render the solid body that contains
+    // it. Keep only a hollow, camera-facing silhouette when the visitor turns
+    // back toward the Sun; the scene remains visible through its centre.
+    this.sun.visible = focus !== 'sun';
+    this.sunOutline.visible = focus === 'sun';
     if (focus === 'free') {
       this.rig.releaseFollow();
       return;
@@ -266,6 +290,7 @@ export class HodographScene {
     if (this.cameraFocus === 'planet') this.rig.trackFollow(position);
     if (this.cameraFocus === 'hodograph') this.rig.trackFollow(velocity);
     this.rig.update(this.camera, deltaSeconds);
+    if (this.sunOutline.visible) this.sunOutline.quaternion.copy(this.camera.quaternion);
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -284,6 +309,7 @@ export class HodographScene {
 
     this.planet.position.copy(position);
     this.sun.position.copy(focus);
+    this.sunOutline.position.copy(focus);
     this.hodographPoint.position.copy(velocity);
     this.hodographCenter.position.copy(center);
     this.updateArrow(this.positionArrow, focus, position);
