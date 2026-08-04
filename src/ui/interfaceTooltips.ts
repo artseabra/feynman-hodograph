@@ -1,10 +1,6 @@
 type InterfaceTooltipId =
   | 'theme'
   | 'narration-nav'
-  | 'dock-playback'
-  | 'dock-geometry'
-  | 'dock-camera'
-  | 'dock-sound'
   | 'playback-toggle'
   | 'restart'
   | 'time-scale'
@@ -45,26 +41,6 @@ const TOOLTIP_COPY: Record<InterfaceTooltipId, TooltipDefinition> = {
   'narration-nav': {
     label: 'Lost-lecture narration',
     explainer: 'Play or pause the recovered story. Starting it here carries you directly to the narration below.',
-    accent: 'var(--hodograph)',
-  },
-  'dock-playback': {
-    label: 'Playback',
-    explainer: 'Control the shared clock that advances both position and velocity space.',
-    accent: 'var(--construction)',
-  },
-  'dock-geometry': {
-    label: 'Geometry',
-    explainer: 'Change eccentricity and the resolution of the equal-time construction.',
-    accent: 'var(--orbit)',
-  },
-  'dock-camera': {
-    label: 'Camera',
-    explainer: 'Choose rigorous canonical views or attach the camera to a moving body.',
-    accent: 'var(--vector)',
-  },
-  'dock-sound': {
-    label: 'Sound',
-    explainer: 'Mix three interpretive layers driven by gravitational field, hodograph phase, and exact event crossings.',
     accent: 'var(--hodograph)',
   },
   'playback-toggle': {
