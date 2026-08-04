@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { crossedWedgeEvents, orbitalState, TAU } from '../src/model/orbit';
-import { apsisTuning, gravityFrame, hodographFrame, orbitalMeasures, wedgeTexture } from '../src/audio/sonification';
+import { apsisTuning, boundaryPulse, gravityFrame, hodographFrame, orbitalMeasures } from '../src/audio/sonification';
 
 describe('Keplerian sonification mapping', () => {
   it('derives the conserved angular momentum and hodograph radius from the orbit', () => {
@@ -38,21 +38,21 @@ describe('Keplerian sonification mapping', () => {
     expect(gravityFrame(perihelionState).brightness).toBeGreaterThan(gravityFrame(aphelionState).brightness);
   });
 
-  it('uses exact equal-time crossings to create bounded non-tonal grains', () => {
+  it('uses exact equal-time crossings to create bounded inharmonic pulses', () => {
     const crossings = crossedWedgeEvents(0, TAU / 8, 16);
     const first = crossings[0];
     const second = crossings[1];
     if (!first || !second) throw new Error('Expected two wedge crossings');
-    const firstTexture = wedgeTexture(first, orbitalState(0.55, first.meanAnomaly));
-    const secondTexture = wedgeTexture(second, orbitalState(0.55, second.meanAnomaly));
+    const firstPulse = boundaryPulse(first, orbitalState(0.55, first.meanAnomaly));
+    const secondPulse = boundaryPulse(second, orbitalState(0.55, second.meanAnomaly));
 
-    expect(firstTexture.centerFrequency).toBeGreaterThanOrEqual(560);
-    expect(firstTexture.centerFrequency).toBeLessThanOrEqual(1_800);
-    expect(firstTexture.resonance).toBeGreaterThan(0.5);
-    expect(firstTexture.intensity).toBeGreaterThan(0.5);
-    expect(firstTexture.duration).toBeGreaterThan(0);
-    expect(firstTexture.seed).not.toBe(secondTexture.seed);
-    expect(firstTexture.centerFrequency).not.toBeCloseTo(secondTexture.centerFrequency, 6);
+    expect(firstPulse.frequency).toBeGreaterThanOrEqual(185);
+    expect(firstPulse.frequency).toBeLessThanOrEqual(219);
+    expect(firstPulse.modeRatio).toBeGreaterThanOrEqual(1.48);
+    expect(firstPulse.modeRatio).toBeLessThanOrEqual(1.66);
+    expect(firstPulse.intensity).toBeGreaterThan(0.5);
+    expect(firstPulse.duration).toBeGreaterThan(0);
+    expect(firstPulse.frequency).not.toBeCloseTo(secondPulse.frequency, 6);
   });
 
   it('maps the hodograph circle into a normalized four-resonator crossfade', () => {

@@ -112,42 +112,29 @@ export interface MarkerTuning {
   duration: number;
 }
 
-export interface WedgeTexture {
-  centerFrequency: number;
-  resonance: number;
+export interface BoundaryPulse {
+  frequency: number;
+  modeRatio: number;
   intensity: number;
   duration: number;
-  seed: number;
 }
 
 /**
- * Equal-time boundaries are non-tonal grains, not notes. Their spectral colour
- * follows a smooth, closed path around the hodograph circle; proximity sets
- * the grain's length and velocity sets its weight. The construction therefore
- * has an audible clock without adding another melody to the continuous fields.
+ * Equal-time boundaries use one dry, damped physical pulse rather than noise
+ * or a pitched sequence. Its two inharmonic modes change continuously around
+ * the hodograph, while proximity sets damping and velocity sets weight.
  */
-export function wedgeTexture(crossing: WedgeCrossing, state: OrbitalState): WedgeTexture {
+export function boundaryPulse(_crossing: WedgeCrossing, state: OrbitalState): BoundaryPulse {
   const measures = orbitalMeasures(state);
   const angle = measures.hodographAngle;
-  const spectralOrbit = clamp(
-    0.5
-      + 0.27 * Math.sin(angle)
-      + 0.14 * Math.sin(angle * 2 + Math.PI / 3)
-      + 0.07 * Math.sin(angle * 3 - Math.PI / 5),
-    0,
-    1,
-  );
-  const seed = (
-    Math.imul(crossing.index + 1, 0x9e37_79b1)
-    ^ Math.imul(crossing.wedgeCount, 0x85eb_ca77)
-  ) >>> 0;
 
   return {
-    centerFrequency: 560 + spectralOrbit * 1_240,
-    resonance: 0.62 + (1 - measures.potentialNormalized) * 0.78,
-    intensity: 0.66 + measures.kineticNormalized * 0.34,
-    duration: 0.052 + (1 - measures.potentialNormalized) * 0.052,
-    seed,
+    frequency: 202
+      + 11 * Math.sin(angle)
+      + 6 * Math.sin(angle * 2 + Math.PI / 4),
+    modeRatio: 1.48 + 0.18 * (0.5 + 0.5 * Math.cos(angle * 2 - Math.PI / 5)),
+    intensity: 0.62 + measures.kineticNormalized * 0.32,
+    duration: 0.072 + (1 - measures.potentialNormalized) * 0.05,
   };
 }
 

@@ -137,8 +137,8 @@ const TOOLTIP_COPY: Record<InterfaceTooltipId, TooltipDefinition> = {
     accent: 'var(--hodograph)',
   },
   'sound-markers': {
-    label: 'Time-boundary grains',
-    explainer: 'Each exact equal-time crossing releases a short non-tonal grain whose colour moves continuously around the hodograph. Perihelion and aphelion remain distinct landmarks.',
+    label: 'Boundary pulses',
+    explainer: 'Each exact equal-time crossing makes one short, dry pulse. Two damped inharmonic modes change continuously around the hodograph; perihelion and aphelion remain separate landmarks.',
     accent: 'var(--wedge)',
   },
   'story-link': {

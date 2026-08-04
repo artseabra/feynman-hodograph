@@ -1,6 +1,6 @@
 import { type ApsisCrossing, type WedgeCrossing } from '../model/orbit';
 import type { AudioMix, OrbitalState } from '../types';
-import { apsisTuning, gravityFrame, hodographFrame, wedgeTexture } from './sonification';
+import { apsisTuning, boundaryPulse, gravityFrame, hodographFrame } from './sonification';
 
 interface ContinuousVoice {
   oscillator: OscillatorNode;
@@ -62,7 +62,7 @@ function transientNoise(context: AudioContext, durationSeconds: number, seed = M
  *
  * The graph has deliberately separate voices: normalized 1/r² raises and
  * opens the gravity bed; the hodograph rotates through stationary resonators;
- * exact construction boundaries make filtered-noise grains while the two
+ * exact construction boundaries make dry inharmonic pulses while the two
  * apsides remain tonal landmarks. No stem is driven by render-frame frequency
  * or treated as an engine imitation.
  */
@@ -146,14 +146,13 @@ export class AudioEngine {
 
   triggerWedge(crossing: WedgeCrossing, state: OrbitalState): void {
     if (!this.enabled || this.muted || !this.context || !this.mix) return;
-    const texture = wedgeTexture(crossing, state);
-    this.grain(
+    const pulse = boundaryPulse(crossing, state);
+    this.boundaryStrike(
       this.reserveMarkerTime(),
-      texture.centerFrequency,
-      texture.resonance,
-      texture.intensity * 0.4,
-      texture.duration,
-      texture.seed,
+      pulse.frequency,
+      pulse.modeRatio,
+      pulse.intensity * 0.22,
+      pulse.duration,
     );
   }
 
@@ -191,39 +190,42 @@ export class AudioEngine {
     return time;
   }
 
-  private grain(
+  private boundaryStrike(
     time: number,
-    centerFrequency: number,
-    resonance: number,
+    frequency: number,
+    modeRatio: number,
     amplitude: number,
     duration: number,
-    seed: number,
   ): void {
     if (!this.context || !this.markers) return;
     const context = this.context;
-    const noise = context.createBufferSource();
-    const highpass = context.createBiquadFilter();
-    const bandpass = context.createBiquadFilter();
-    const envelope = context.createGain();
+    const fundamental = context.createOscillator();
+    const mode = context.createOscillator();
+    const fundamentalGain = context.createGain();
+    const modeGain = context.createGain();
 
-    noise.buffer = transientNoise(context, duration + 0.024, seed);
-    highpass.type = 'highpass';
-    highpass.frequency.setValueAtTime(170, time);
-    highpass.Q.setValueAtTime(0.38, time);
-    bandpass.type = 'bandpass';
-    bandpass.frequency.setValueAtTime(centerFrequency, time);
-    bandpass.Q.setValueAtTime(resonance, time);
+    fundamental.type = 'sine';
+    mode.type = 'sine';
+    fundamental.frequency.setValueAtTime(frequency, time);
+    fundamental.frequency.exponentialRampToValueAtTime(frequency * 0.955, time + duration);
+    mode.frequency.setValueAtTime(frequency * modeRatio, time);
+    mode.frequency.exponentialRampToValueAtTime(frequency * modeRatio * 0.925, time + duration * 0.82);
 
-    envelope.gain.setValueAtTime(0.0001, time);
-    envelope.gain.exponentialRampToValueAtTime(Math.max(0.0002, amplitude), time + 0.0035);
-    envelope.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+    fundamentalGain.gain.setValueAtTime(0.0001, time);
+    fundamentalGain.gain.exponentialRampToValueAtTime(Math.max(0.0002, amplitude), time + 0.004);
+    fundamentalGain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+    modeGain.gain.setValueAtTime(0.0001, time);
+    modeGain.gain.exponentialRampToValueAtTime(Math.max(0.0002, amplitude * 0.3), time + 0.0025);
+    modeGain.gain.exponentialRampToValueAtTime(0.0001, time + duration * 0.72);
 
-    noise.connect(highpass);
-    highpass.connect(bandpass);
-    bandpass.connect(envelope);
-    envelope.connect(this.markers);
-    noise.start(time);
-    noise.stop(time + duration + 0.026);
+    fundamental.connect(fundamentalGain);
+    mode.connect(modeGain);
+    fundamentalGain.connect(this.markers);
+    modeGain.connect(this.markers);
+    fundamental.start(time);
+    mode.start(time);
+    fundamental.stop(time + duration + 0.025);
+    mode.stop(time + duration + 0.025);
   }
 
   private strike(
