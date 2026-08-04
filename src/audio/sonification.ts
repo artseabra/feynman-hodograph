@@ -19,8 +19,9 @@ export interface OrbitalMeasures {
 
 /**
  * Dimensionless measures of the normalized two-body solution (a = μ = 1).
- * The score maps these measures rather than the animation frame rate: gravity
- * is 1/r and 1/r²; the velocity stem is the phase of the actual hodograph.
+ * The score maps these measures rather than the animation frame rate: the
+ * continuous gravity stem reads 1/r², marker decay also reads potential 1/r,
+ * and the velocity stem follows the phase of the actual hodograph.
  */
 export function orbitalMeasures(state: OrbitalState): OrbitalMeasures {
   const e = state.eccentricity;

@@ -1,4 +1,5 @@
 import './styles/main.css';
+import './styles/mobile.css';
 import { AudioEngine } from './audio/audioEngine';
 import { crossedApsisEvents, crossedWedgeEvents, hodographCircle, orbitalState, TAU } from './model/orbit';
 import { FallbackRenderer } from './scene/fallback';
@@ -298,9 +299,10 @@ function resizeScene(): void {
 function setExploring(nextExploring: boolean): void {
   exploring = nextExploring;
   stageShell.dataset.exploring = String(exploring);
+  const inspectAction = window.matchMedia?.('(hover: none)').matches ? 'tap' : 'hover';
   stageInstructions.textContent = exploring
-    ? 'Exploring · scroll to dolly · click outside for page scroll'
-    : 'Scroll moves the page · click the construction to explore';
+    ? `Drag to orbit · scroll to dolly · ${inspectAction} an element to inspect · click outside for page scroll`
+    : `${inspectAction[0].toUpperCase()}${inspectAction.slice(1)} an element to inspect · click the construction to explore`;
   scene?.setExploring(exploring);
 }
 

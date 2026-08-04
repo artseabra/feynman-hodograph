@@ -60,10 +60,11 @@ function transientNoise(context: AudioContext, durationSeconds: number): AudioBu
 /**
  * A browser-native score for the normalized two-body solution.
  *
- * The graph has deliberately separate voices: gravity changes spectral density
- * from 1/r and 1/r²; the hodograph rotates through stationary resonators; and
- * exact construction boundaries make short, audible marks. No stem is driven
- * by render-frame frequency or treated as an engine imitation.
+ * The graph has deliberately separate voices: normalized 1/r² raises and
+ * opens the gravity bed; the hodograph rotates through stationary resonators;
+ * and exact construction boundaries make short, audible marks whose decay
+ * also reads potential 1/r. No stem is driven by render-frame frequency or
+ * treated as an engine imitation.
  */
 export class AudioEngine {
   private context: AudioContext | null = null;

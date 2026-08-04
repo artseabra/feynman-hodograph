@@ -12,6 +12,7 @@ import {
 import { equalTimeSamples, hodographCircle, orbitalState, TAU } from '../model/orbit';
 import { computeInstrumentBounds } from '../model/bounds';
 import { CameraGestureController, CameraRig } from './cameraRig';
+import { CanvasTooltipController, type CanvasTooltipTarget } from './canvasTooltips';
 
 const SEGMENTS = 192;
 
@@ -91,6 +92,7 @@ export class HodographScene {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly rig = new CameraRig();
   private readonly gestureController: CameraGestureController;
+  private readonly tooltipController: CanvasTooltipController;
   private readonly construction = new THREE.Group();
   private readonly live = new THREE.Group();
   private readonly planet: THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
@@ -112,6 +114,7 @@ export class HodographScene {
   private wedgeMaterials: THREE.MeshStandardMaterial[] = [];
   private velocityStepMaterials: THREE.MeshStandardMaterial[] = [];
   private velocityMarkerMaterials: THREE.MeshStandardMaterial[] = [];
+  private tooltipTargets: CanvasTooltipTarget[] = [];
 
   constructor(container: HTMLElement, parameters: ConstructionParameters, palette: ThemePalette) {
     this.parameters = parameters;
@@ -127,7 +130,14 @@ export class HodographScene {
     this.renderer.setClearColor(color(palette.background), 0);
     this.canvas = this.renderer.domElement;
     this.canvas.setAttribute('aria-label', 'Interactive spatial hodograph construction');
+    this.canvas.setAttribute('aria-describedby', 'stage-instructions');
     container.replaceChildren(this.canvas);
+    this.tooltipController = new CanvasTooltipController(
+      this.canvas,
+      container.parentElement ?? container,
+      this.camera,
+      palette,
+    );
 
     this.scene.add(this.construction, this.live);
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0x132231, 1.15));
@@ -208,6 +218,7 @@ export class HodographScene {
 
   setPalette(palette: ThemePalette): void {
     this.palette = palette;
+    this.tooltipController.setPalette(palette);
     this.renderer.setClearColor(color(palette.background), 0);
     this.rebuildConstruction();
     this.planet.material.color.set(palette.orbit);
@@ -289,6 +300,8 @@ export class HodographScene {
     if (this.cameraFocus === 'hodograph') this.rig.trackFollow(velocity);
     this.rig.update(this.camera, deltaSeconds);
     if (this.sunOutline.visible) this.sunOutline.quaternion.copy(this.camera.quaternion);
+    this.camera.updateMatrixWorld();
+    this.tooltipController.update();
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -319,6 +332,7 @@ export class HodographScene {
 
   destroy(): void {
     this.gestureController.destroy();
+    this.tooltipController.destroy();
     disposeObject(this.construction);
     disposeObject(this.live);
     this.renderer.dispose();
@@ -330,13 +344,73 @@ export class HodographScene {
     this.wedgeMaterials = [];
     this.velocityStepMaterials = [];
     this.velocityMarkerMaterials = [];
+    this.tooltipTargets = [];
     this.activeWedge = -1;
 
     const { eccentricity, wedges } = this.parameters;
     const samples = equalTimeSamples(eccentricity, wedges);
     this.addOrbitSpace(samples, eccentricity);
     this.addVelocitySpace(samples, eccentricity);
+    this.registerLiveTooltipTargets();
+    this.tooltipController.setTargets(this.tooltipTargets);
     this.rig.fit(this.bounds, this.camera, this.camera.aspect);
+  }
+
+  private addTooltipTarget(target: CanvasTooltipTarget): void {
+    this.tooltipTargets.push(target);
+  }
+
+  private registerLiveTooltipTargets(): void {
+    const worldPosition = (object: THREE.Object3D): THREE.Vector3 => object.getWorldPosition(new THREE.Vector3());
+    const midpoint = (start: THREE.Object3D, end: THREE.Object3D): THREE.Vector3 => (
+      worldPosition(start).add(worldPosition(end)).multiplyScalar(0.5)
+    );
+
+    this.addTooltipTarget({
+      id: 'sun',
+      objects: [this.sun, this.sunOutline],
+      anchor: () => worldPosition(this.sun),
+      priority: 8,
+    });
+    this.addTooltipTarget({
+      id: 'planet',
+      objects: [this.planet],
+      anchor: () => worldPosition(this.planet),
+      priority: 9,
+    });
+    this.addTooltipTarget({
+      id: 'radius-vector',
+      objects: [this.positionArrow],
+      anchor: () => midpoint(this.sun, this.planet),
+      priority: 7,
+    });
+    this.addTooltipTarget({
+      id: 'hodograph-point',
+      objects: [this.hodographPoint],
+      anchor: () => worldPosition(this.hodographPoint),
+      priority: 9,
+    });
+    this.addTooltipTarget({
+      id: 'hodograph-center',
+      objects: [this.hodographCenter],
+      anchor: () => worldPosition(this.hodographCenter),
+      priority: 9,
+    });
+    this.addTooltipTarget({
+      id: 'hodograph-radius',
+      objects: [this.velocityArrow],
+      anchor: () => midpoint(this.hodographCenter, this.hodographPoint),
+      priority: 7,
+    });
+    this.addTooltipTarget({
+      id: 'phase-bridge',
+      objects: [this.phaseBridge],
+      anchor: () => {
+        const points = correspondenceBridge(this.latestState).map(vector);
+        return points[1].clone().add(points[2]).multiplyScalar(0.5);
+      },
+      priority: 6,
+    });
   }
 
   private addOrbitSpace(samples: ReturnType<typeof equalTimeSamples>, eccentricity: number): void {
@@ -351,21 +425,42 @@ export class HodographScene {
     grid.position.set(gridOrigin.x, gridOrigin.y, gridOrigin.z);
     materialsOf(grid).forEach(material => setOpacity(material, 0.25));
     this.construction.add(grid);
+    this.addTooltipTarget({
+      id: 'orbital-plane',
+      objects: [grid],
+      anchor: () => vector(orbitWorld(gridFrame.center, -0.12)),
+      priority: 1,
+    });
 
     const orbitPoints = Array.from({ length: SEGMENTS }, (_, index) => {
       const state = orbitalState(eccentricity, index / SEGMENTS * TAU);
       return vector(orbitWorld(state.position, 0.01));
     });
     const orbitMaterial = new THREE.MeshStandardMaterial({ color: this.palette.orbit, roughness: 0.32, metalness: 0.18 });
-    this.construction.add(makeTube(orbitPoints, 0.036, orbitMaterial, true));
+    const orbitTube = makeTube(orbitPoints, 0.036, orbitMaterial, true);
+    this.construction.add(orbitTube);
+    this.addTooltipTarget({
+      id: 'orbit',
+      objects: [orbitTube],
+      anchor: () => orbitPoints[Math.floor(SEGMENTS / 2)].clone(),
+      priority: 6,
+    });
 
     const referenceCircle = Array.from({ length: SEGMENTS }, (_, index) => {
       const angle = index / SEGMENTS * TAU;
       return vector(orbitWorld({ x: Math.cos(angle) - eccentricity, y: Math.sin(angle) }, -0.015));
     });
     const referenceMaterial = new THREE.MeshStandardMaterial({ color: this.palette.construction, transparent: true, opacity: 0.38, roughness: 0.45, metalness: 0.05 });
-    this.construction.add(makeTube(referenceCircle, 0.014, referenceMaterial, true));
+    const referenceTube = makeTube(referenceCircle, 0.014, referenceMaterial, true);
+    this.construction.add(referenceTube);
+    this.addTooltipTarget({
+      id: 'reference-circle',
+      objects: [referenceTube],
+      anchor: () => referenceCircle[Math.floor(SEGMENTS / 4)].clone(),
+      priority: 5,
+    });
 
+    const wedgeObjects: THREE.Object3D[] = [];
     samples.forEach((sample, index) => {
       const next = samples[(index + 1) % samples.length];
       const focus = vector(orbitWorld({ x: 0, y: 0 }));
@@ -381,11 +476,25 @@ export class HodographScene {
         metalness: 0.08,
       });
       this.wedgeMaterials.push(material);
-      this.construction.add(makeWedgePrism(focus, start, end, material));
-      this.construction.add(new THREE.Line(
+      const wedge = makeWedgePrism(focus, start, end, material);
+      const radius = new THREE.Line(
         lineGeometry([focus.clone().add(new THREE.Vector3(0, 0.012, 0)), start.clone().add(new THREE.Vector3(0, 0.012, 0))]),
         new THREE.LineBasicMaterial({ color: this.palette.orbit, transparent: true, opacity: 0.34 }),
-      ));
+      );
+      wedgeObjects.push(wedge, radius);
+      this.construction.add(wedge, radius);
+    });
+    this.addTooltipTarget({
+      id: 'equal-time-wedges',
+      objects: wedgeObjects,
+      anchor: () => {
+        const index = Math.max(0, this.activeWedge) % samples.length;
+        const start = vector(orbitWorld(samples[index].position));
+        const end = vector(orbitWorld(samples[(index + 1) % samples.length].position));
+        const focus = vector(orbitWorld({ x: 0, y: 0 }));
+        return focus.add(start).add(end).multiplyScalar(1 / 3);
+      },
+      priority: 4,
     });
   }
 
@@ -398,6 +507,12 @@ export class HodographScene {
     grid.position.set(gridOrigin.x, gridOrigin.y, gridOrigin.z);
     materialsOf(grid).forEach(material => setOpacity(material, 0.28));
     this.construction.add(grid);
+    this.addTooltipTarget({
+      id: 'velocity-plane',
+      objects: [grid],
+      anchor: () => vector(hodographWorld(gridFrame.center, -0.14)),
+      priority: 1,
+    });
 
     const circlePoints = Array.from({ length: SEGMENTS }, (_, index) => {
       const angle = index / SEGMENTS * TAU;
@@ -407,13 +522,29 @@ export class HodographScene {
       }, -0.01));
     });
     const circleMaterial = new THREE.MeshStandardMaterial({ color: this.palette.hodograph, transparent: true, opacity: 0.42, roughness: 0.3, metalness: 0.18 });
-    this.construction.add(makeTube(circlePoints, 0.025, circleMaterial, true));
+    const hodographTube = makeTube(circlePoints, 0.025, circleMaterial, true);
+    this.construction.add(hodographTube);
+    this.addTooltipTarget({
+      id: 'hodograph-circle',
+      objects: [hodographTube],
+      anchor: () => circlePoints[Math.floor(SEGMENTS / 4)].clone(),
+      priority: 6,
+    });
 
     const origin = vector(hodographWorld({ x: 0, y: 0 }));
     const center = vector(hodographWorld(circle.center));
     const offsetMaterial = new THREE.MeshStandardMaterial({ color: this.palette.vector, transparent: true, opacity: 0.68, roughness: 0.35, metalness: 0.08 });
-    this.construction.add(makeTube([origin, center], 0.018, offsetMaterial));
+    const offsetTube = makeTube([origin, center], 0.018, offsetMaterial);
+    this.construction.add(offsetTube);
+    this.addTooltipTarget({
+      id: 'center-offset',
+      objects: [offsetTube],
+      anchor: () => origin.clone().add(center).multiplyScalar(0.5),
+      priority: 7,
+    });
 
+    const velocityStepObjects: THREE.Object3D[] = [];
+    const velocitySampleObjects: THREE.Object3D[] = [];
     samples.forEach((sample, index) => {
       const next = samples[(index + 1) % samples.length];
       const start = vector(hodographWorld(sample.velocity, 0.025));
@@ -423,18 +554,40 @@ export class HodographScene {
       const material = new THREE.MeshStandardMaterial({ color: this.palette.hodograph, transparent: true, opacity: 0.35, roughness: 0.22, metalness: 0.3 });
       this.velocityStepMaterials.push(material);
       if (length > 0.0001) {
-        this.construction.add(makeTube([start, end], 0.021, material));
+        const step = makeTube([start, end], 0.021, material);
         const headLength = Math.min(0.16, length * 0.45);
         const cone = new THREE.Mesh(new THREE.ConeGeometry(0.054, headLength, 10), material);
         cone.position.copy(end).addScaledVector(direction.normalize(), -headLength / 2);
         cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
-        this.construction.add(cone);
+        velocityStepObjects.push(step, cone);
+        this.construction.add(step, cone);
       }
       const markerMaterial = new THREE.MeshStandardMaterial({ color: this.palette.hodograph, transparent: true, opacity: 0.62, roughness: 0.25, metalness: 0.18 });
       this.velocityMarkerMaterials.push(markerMaterial);
       const marker = new THREE.Mesh(new THREE.SphereGeometry(0.046, 16, 16), markerMaterial);
       marker.position.copy(start);
+      velocitySampleObjects.push(marker);
       this.construction.add(marker);
+    });
+    this.addTooltipTarget({
+      id: 'velocity-change-chain',
+      objects: velocityStepObjects,
+      anchor: () => {
+        const index = Math.max(0, this.activeWedge) % samples.length;
+        const start = vector(hodographWorld(samples[index].velocity, 0.025));
+        const end = vector(hodographWorld(samples[(index + 1) % samples.length].velocity, 0.025));
+        return start.add(end).multiplyScalar(0.5);
+      },
+      priority: 5,
+    });
+    this.addTooltipTarget({
+      id: 'velocity-samples',
+      objects: velocitySampleObjects,
+      anchor: () => {
+        const index = Math.max(0, this.activeWedge) % samples.length;
+        return vector(hodographWorld(samples[index].velocity, 0.025));
+      },
+      priority: 7,
     });
   }
 

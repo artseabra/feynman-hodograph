@@ -737,6 +737,96 @@ input[type='range'] {
   line-height: 1.45;
 }
 
+/* Canvas annotations inherit the Luster Portal tooltip anatomy and input
+   contract, but intentionally omit its blur, shadow, and glow. */
+.scene-tooltip-hotspots {
+  position: absolute;
+  z-index: 7;
+  inset: 0;
+  pointer-events: none;
+}
+
+.scene-tooltip-hotspot {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  padding: 0;
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.scene-tooltip-hotspot:focus-visible {
+  border-color: var(--scene-tooltip-accent, var(--hodograph));
+  outline: 1px solid var(--panel-strong);
+  outline-offset: -3px;
+  background: color-mix(in srgb, var(--scene-tooltip-accent, var(--hodograph)) 16%, var(--panel-strong));
+  opacity: 1;
+}
+
+.scene-tooltip {
+  --scene-tooltip-accent: var(--hodograph);
+  position: absolute;
+  z-index: 8;
+  width: max-content;
+  max-width: min(224px, calc(100% - 20px));
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--scene-tooltip-accent) 22%, rgba(255, 255, 255, 0.12));
+  border-radius: 10px;
+  background: #0c1210;
+  color: #f4f0e7;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(2px) scale(0.97);
+  transform-origin: 50% 100%;
+  transition: opacity 100ms ease, transform 100ms ease;
+}
+
+.scene-tooltip[hidden] {
+  display: none !important;
+}
+
+.scene-tooltip[data-placement='below'] {
+  transform-origin: 50% 0;
+}
+
+.scene-tooltip[data-open='true'] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.scene-tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px 6px;
+  border-bottom: 1px solid color-mix(in srgb, var(--scene-tooltip-accent) 22%, transparent);
+  background: color-mix(in srgb, var(--scene-tooltip-accent) 10%, #0c1210);
+  color: var(--scene-tooltip-accent);
+  font: 700 9px/1.25 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.scene-tooltip-marker {
+  width: 5px;
+  height: 5px;
+  flex: 0 0 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.scene-tooltip-body {
+  margin: 0;
+  padding: 8px 10px 9px;
+  color: rgba(244, 240, 231, 0.68);
+  font-size: 11px;
+  line-height: 1.38;
+}
+
 .audio-controls {
   display: grid;
   grid-template-columns: minmax(130px, 1fr) minmax(150px, 1.8fr);
