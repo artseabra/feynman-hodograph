@@ -105,7 +105,7 @@
   }
 
   .stage-hud {
-    top: clamp(216px, 28svh, 228px);
+    top: clamp(246px, 31svh, 258px);
     gap: 3px;
   }
 
