@@ -17,7 +17,6 @@
   --wedge: #e99a62;
   --grid: #9ba3ac;
   --focus-ring: rgba(49, 90, 154, 0.55);
-  --shadow: 0 28px 80px rgba(44, 38, 28, 0.12);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -40,7 +39,6 @@
   --wedge: #c88a67;
   --grid: #69746c;
   --focus-ring: rgba(132, 169, 220, 0.65);
-  --shadow: 0 30px 90px rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -59,10 +57,7 @@ body {
   min-height: 100svh;
   margin: 0;
   color: var(--ink);
-  background:
-    radial-gradient(circle at 8% 8%, color-mix(in srgb, var(--hodograph) 12%, transparent), transparent 28rem),
-    radial-gradient(circle at 88% 72%, color-mix(in srgb, var(--orbit) 12%, transparent), transparent 35rem),
-    var(--paper);
+  background: var(--paper);
   font-size: 15px;
   line-height: 1.45;
 }
@@ -98,31 +93,42 @@ a:focus-visible {
 }
 
 .app-shell {
+  position: relative;
   width: min(1480px, calc(100% - 42px));
   display: flex;
   min-height: 100svh;
   flex-direction: column;
   margin: 0 auto;
-  padding: 12px 0 14px;
+  padding: 12px 0 0;
 }
 
 .masthead {
+  position: absolute;
+  z-index: 10;
+  top: 23px;
+  right: 16px;
+  left: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  min-height: 40px;
-  border-bottom: 1px solid var(--rule);
+  min-height: 34px;
+  pointer-events: none;
 }
 
 .wordmark {
   display: inline-flex;
   align-items: center;
   gap: 9px;
+  padding: 6px 9px 6px 7px;
+  border: 1px solid color-mix(in srgb, var(--rule-bright) 76%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel-strong) 74%, transparent);
   color: var(--ink);
   font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   letter-spacing: 0.12em;
   text-decoration: none;
+  pointer-events: auto;
 }
 
 .wordmark-mark {
@@ -142,6 +148,10 @@ a:focus-visible {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.masthead-actions {
+  pointer-events: auto;
 }
 
 .quiet-button,
@@ -181,21 +191,30 @@ a:focus-visible {
   width: 34px;
   height: 34px;
   place-items: center;
+  background: color-mix(in srgb, var(--panel-strong) 74%, transparent);
   color: var(--ink-soft);
   font-size: 17px;
 }
 
 .instrument {
-  display: block;
-  padding-top: clamp(18px, 2vw, 32px);
+  position: relative;
+  display: grid;
+  min-height: calc(100svh - 12px);
+  grid-template-rows: minmax(560px, 1fr);
 }
 
 .instrument-heading {
+  position: absolute;
+  z-index: 4;
+  top: clamp(78px, 9svh, 104px);
+  right: clamp(25px, 3.2vw, 48px);
+  left: clamp(25px, 3.2vw, 48px);
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(250px, 0.45fr);
-  align-items: end;
+  align-items: start;
   gap: clamp(24px, 5vw, 72px);
-  padding: 0 2px 16px;
+  padding: 0;
+  pointer-events: none;
 }
 
 .eyebrow {
@@ -213,7 +232,7 @@ h2 {
 }
 
 h1 {
-  font-size: clamp(48px, 5.8vw, 82px);
+  font-size: clamp(54px, 6.25vw, 92px);
   font-weight: 600;
   line-height: 0.88;
 }
@@ -226,7 +245,7 @@ h2 {
 
 .dek {
   max-width: 36ch;
-  margin: 0 0 3px;
+  margin: 7px 0 0;
   color: var(--ink-soft);
   font-size: clamp(15px, 1.6vw, 19px);
   line-height: 1.55;
@@ -234,43 +253,68 @@ h2 {
 
 .stage-shell {
   position: relative;
-  height: clamp(380px, calc(100svh - 254px), 660px);
-  min-height: 320px;
+  height: auto;
+  min-height: 0;
   overflow: hidden;
   border: 1px solid var(--rule-bright);
-  border-radius: 12px;
+  border-radius: 20px;
   background:
     linear-gradient(150deg, color-mix(in srgb, var(--paper-strong) 88%, transparent), color-mix(in srgb, var(--paper) 84%, transparent)),
     var(--paper-strong);
-  box-shadow: var(--shadow);
   isolation: isolate;
 }
 
-.stage-shell::before,
-.stage-shell::after {
+.story-threshold {
   position: absolute;
-  z-index: 0;
-  width: 48vw;
-  height: 48vw;
-  max-width: 680px;
-  max-height: 680px;
+  z-index: 5;
+  right: 18px;
+  bottom: 15px;
+  display: flex;
+  width: auto;
+  max-width: min(390px, calc(100% - 500px));
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0 6px 12px;
+  border: 0;
+  border-left: 1px solid var(--rule-bright);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 160ms ease, color 160ms ease;
+}
+
+.story-threshold:hover {
+  border-color: var(--hodograph);
+}
+
+.story-threshold-kicker {
+  color: var(--hodograph);
+  font: 600 9px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.story-threshold-title {
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-family: Iowan Old Style, Charter, Georgia, serif;
+  font-size: 13px;
+  letter-spacing: -0.012em;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.story-threshold-arrow {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid var(--rule);
   border-radius: 50%;
-  content: '';
-  filter: blur(2px);
-  opacity: 0.48;
-  pointer-events: none;
-}
-
-.stage-shell::before {
-  top: -31%;
-  left: -13%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--hodograph) 11%, transparent), transparent 67%);
-}
-
-.stage-shell::after {
-  right: -20%;
-  bottom: -42%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--orbit) 11%, transparent), transparent 68%);
+  color: var(--hodograph);
+  font-size: 12px;
 }
 
 .stage {
@@ -294,19 +338,17 @@ h2 {
 .stage-guide {
   position: absolute;
   z-index: 4;
-  top: 50%;
+  top: clamp(196px, 28svh, 236px);
   left: 50%;
   display: flex;
   align-items: center;
   gap: 20px;
   width: min(440px, calc(100% - 44px));
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   padding: 14px 15px 14px 17px;
   border: 1px solid color-mix(in srgb, var(--rule-bright) 88%, var(--hodograph));
   border-radius: 9px;
   background: color-mix(in srgb, var(--panel-strong) 92%, transparent);
-  box-shadow: 0 18px 52px color-mix(in srgb, var(--ink) 14%, transparent);
-  backdrop-filter: blur(16px);
 }
 
 .stage-guide[hidden] {
@@ -362,7 +404,7 @@ kbd {
 .stage-hud {
   position: absolute;
   z-index: 3;
-  top: 21px;
+  top: clamp(207px, 29svh, 246px);
   display: grid;
   gap: 5px;
   pointer-events: none;
@@ -472,8 +514,6 @@ kbd {
   border: 1px solid var(--rule-bright);
   border-radius: 8px;
   background: color-mix(in srgb, var(--panel-strong) 88%, transparent);
-  box-shadow: 0 12px 34px color-mix(in srgb, var(--ink) 12%, transparent);
-  backdrop-filter: blur(18px);
   scrollbar-width: none;
 }
 
@@ -539,8 +579,6 @@ kbd {
   border: 1px solid var(--rule-bright);
   border-radius: 9px;
   background: color-mix(in srgb, var(--panel-strong) 93%, transparent);
-  box-shadow: 0 18px 54px color-mix(in srgb, var(--ink) 16%, transparent);
-  backdrop-filter: blur(18px);
 }
 
 .dock-panel[hidden] { display: none; }
@@ -838,17 +876,27 @@ input[type='range'] {
 .source-note a:hover { color: var(--ink); }
 
 @media (max-width: 1000px) {
-  .instrument-heading {
-    grid-template-columns: 1fr;
-    gap: 20px;
+  .instrument {
+    grid-template-rows: minmax(600px, 1fr);
   }
 
-  .dek { max-width: 58ch; }
+  .instrument-heading {
+    top: 72px;
+    right: 24px;
+    left: 24px;
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .dek { max-width: 54ch; margin-top: 0; }
 
   .stage-shell {
-    height: clamp(390px, 62svh, 560px);
+    height: auto;
     min-height: 0;
   }
+
+  .stage-guide { top: 246px; }
+  .stage-hud { top: 257px; }
 
   .dock-panel {
     flex-wrap: wrap;
@@ -863,25 +911,34 @@ input[type='range'] {
 
 @media (max-width: 680px) {
   .app-shell {
-    display: block;
+    display: flex;
     min-height: 0;
     width: min(100% - 24px, 620px);
-    padding-top: 13px;
-    padding-bottom: 62px;
+    padding-top: 12px;
+    padding-bottom: 0;
   }
 
-  .instrument { display: block; padding-top: 53px; }
-  .instrument-heading { padding-bottom: 22px; }
+  .masthead { top: 22px; right: 12px; left: 12px; }
+  .wordmark { letter-spacing: 0.09em; }
+
+  .instrument {
+    display: grid;
+    min-height: 0;
+    grid-template-rows: minmax(660px, 145vw);
+    padding: 0;
+  }
+  .instrument-heading { top: 73px; right: 17px; left: 17px; gap: 12px; padding: 0; }
   h1 { font-size: clamp(48px, 15vw, 72px); }
+  .dek { max-width: 35ch; font-size: 14px; line-height: 1.45; }
 
   .stage-shell {
-    height: 127vw;
-    min-height: 127vw;
-    border-radius: 9px;
+    height: auto;
+    min-height: 0;
+    border-radius: 14px;
   }
 
   .stage-hud {
-    top: 15px;
+    top: 222px;
   }
 
   .stage-hud-left { left: 15px; }
@@ -898,6 +955,17 @@ input[type='range'] {
   }
   .stage-guide p { font-size: 11px; }
   .stage-guide-dismiss { padding: 8px; }
+
+  .story-threshold {
+    right: 15px;
+    bottom: 58px;
+    width: auto;
+    max-width: min(260px, calc(100% - 30px));
+    gap: 12px;
+    padding: 6px 0 6px 11px;
+  }
+  .story-threshold-kicker { display: none; }
+  .story-threshold-title { font-size: 14px; text-align: left; }
 
   .dock { bottom: 12px; max-width: calc(100% - 24px); }
   .dock-tab { min-height: 34px; padding: 0 11px; font-size: 8px; }

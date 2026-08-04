@@ -57,6 +57,24 @@ describe('camera wheel ownership', () => {
     expect(camera.fov).toBeGreaterThanOrEqual(38);
   });
 
+  it('keeps the moving planet centred until the visitor deliberately looks away', () => {
+    const rig = new CameraRig();
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 200);
+    const sun = new THREE.Vector3(0, 0, 0);
+
+    rig.beginPointOfView(sun, new THREE.Vector3(3, 0, 0));
+    rig.trackPointOfView(sun, new THREE.Vector3(0, 0, 3));
+    rig.update(camera, 0.1);
+    expect(camera.getWorldDirection(new THREE.Vector3()).z).toBeCloseTo(1, 8);
+
+    rig.orbit(100, 0);
+    for (let index = 0; index < 14; index += 1) rig.update(camera, 0.1);
+    const visitorDirection = camera.getWorldDirection(new THREE.Vector3()).clone();
+    rig.trackPointOfView(sun, new THREE.Vector3(-3, 0, 0));
+    rig.update(camera, 0.1);
+    expect(camera.getWorldDirection(new THREE.Vector3()).dot(visitorDirection)).toBeGreaterThan(0.99);
+  });
+
   it('turns the Sun point of view in the same horizontal direction as the drag', () => {
     const rig = new CameraRig();
     const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 200);

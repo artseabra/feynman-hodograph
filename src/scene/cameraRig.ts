@@ -43,7 +43,9 @@ export class CameraRig {
   private readonly target = new THREE.Vector3();
   private readonly targetGoal = new THREE.Vector3();
   private readonly followOffset = new THREE.Vector3();
+  private readonly pointOfViewEyeDirection = new THREE.Vector3(0, 0, 1);
   private followMode: 'none' | 'target' | 'point-of-view' = 'none';
+  private pointOfViewTracksSubject = false;
   private yaw = CAMERA_PRESETS.proof.yaw;
   private yawGoal = CAMERA_PRESETS.proof.yaw;
   private pitch = CAMERA_PRESETS.proof.pitch;
@@ -100,6 +102,10 @@ export class CameraRig {
 
   orbit(deltaX: number, deltaY: number): void {
     if (this.followMode === 'point-of-view') {
+      // The initial Sun view keeps the planet centred. The first deliberate
+      // look gesture hands orientation to the visitor and stops auto-tracking
+      // until From Sun is selected again.
+      this.pointOfViewTracksSubject = false;
       // Orbit mode moves a camera around a target; point-of-view mode turns
       // the eye itself. Horizontal direct-look follows screen space: pull
       // right to look right and pull left to look left. Keep vertical drag
@@ -115,6 +121,7 @@ export class CameraRig {
   }
 
   pan(deltaX: number, deltaY: number, camera: THREE.PerspectiveCamera): void {
+    if (this.followMode === 'point-of-view') this.pointOfViewTracksSubject = false;
     const scale = this.distanceGoal * 0.00145;
     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
     const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
@@ -165,6 +172,7 @@ export class CameraRig {
 
   releaseFollow(): void {
     this.followMode = 'none';
+    this.pointOfViewTracksSubject = false;
     this.followOffset.set(0, 0, 0);
   }
 
@@ -175,28 +183,31 @@ export class CameraRig {
    */
   beginPointOfView(anchor: THREE.Vector3, initialSubject: THREE.Vector3): void {
     this.followMode = 'point-of-view';
+    this.pointOfViewTracksSubject = true;
     this.followOffset.set(0, 0, 0);
-    const direction = initialSubject.clone().sub(anchor);
-    if (direction.lengthSq() > 1e-8) {
-      direction.normalize();
-      this.setOrientation({
-        yaw: Math.atan2(direction.x, direction.z),
-        pitch: Math.asin(THREE.MathUtils.clamp(direction.y, -1, 1)),
-      }, true);
-    }
     this.minimumDistance = POV_MIN_DISTANCE;
     this.maximumDistance = POV_MAX_DISTANCE;
     this.distance = POV_REFERENCE_DISTANCE;
     this.distanceGoal = POV_REFERENCE_DISTANCE;
-    this.trackPointOfView(anchor);
+    this.trackPointOfView(anchor, initialSubject);
   }
 
-  trackPointOfView(anchor: THREE.Vector3): void {
+  trackPointOfView(anchor: THREE.Vector3, subject?: THREE.Vector3): void {
     if (this.followMode !== 'point-of-view') return;
     this.targetGoal.copy(anchor).add(this.followOffset);
     // An anchored point of view must move with its body immediately; otherwise
     // the eye seems to lag behind the physical point it claims to inhabit.
     this.target.copy(this.targetGoal);
+    if (!this.pointOfViewTracksSubject || !subject) return;
+
+    const direction = subject.clone().sub(anchor);
+    if (direction.lengthSq() <= 1e-8) return;
+    direction.normalize();
+    this.pointOfViewEyeDirection.copy(direction);
+    this.setOrientation({
+      yaw: Math.atan2(direction.x, direction.z),
+      pitch: Math.asin(THREE.MathUtils.clamp(direction.y, -1, 1)),
+    }, true);
   }
 
   private setOrientation({ yaw, pitch }: { yaw: number; pitch: number }, snap = false): void {
@@ -255,7 +266,9 @@ export class CameraRig {
         camera.fov = fov;
         camera.updateProjectionMatrix();
       }
-      camera.position.copy(this.target).addScaledVector(viewDirection, POV_EYE_RADIUS);
+      // Eye placement and look direction are deliberately separate. Turning
+      // your head must not slide the camera around the Sun's surface.
+      camera.position.copy(this.target).addScaledVector(this.pointOfViewEyeDirection, POV_EYE_RADIUS);
       camera.up.copy(Math.abs(Math.abs(this.pitch) - HALF_PI) < 0.001
         ? (this.pitch >= 0 ? TOP_DOWN_UP : BOTTOM_UP_UP)
         : WORLD_UP);

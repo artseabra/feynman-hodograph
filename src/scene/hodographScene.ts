@@ -103,6 +103,7 @@ export class HodographScene {
   private readonly phaseBridge: THREE.Line<THREE.BufferGeometry, THREE.LineDashedMaterial>;
   private palette: ThemePalette;
   private parameters: ConstructionParameters;
+  private latestState: OrbitalState;
   private bounds: SceneBounds;
   private cameraFocus: CameraFocus = 'free';
   private lastTimestamp = performance.now();
@@ -114,6 +115,7 @@ export class HodographScene {
   constructor(container: HTMLElement, parameters: ConstructionParameters, palette: ThemePalette) {
     this.parameters = parameters;
     this.palette = palette;
+    this.latestState = orbitalState(parameters.eccentricity, 0);
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -177,12 +179,15 @@ export class HodographScene {
 
     this.bounds = computeInstrumentBounds(parameters.eccentricity, parameters.wedges);
     this.rebuildConstruction();
+    this.applyOrbitalState(this.latestState);
   }
 
   setParameters(parameters: ConstructionParameters): void {
     this.parameters = parameters;
+    this.latestState = orbitalState(parameters.eccentricity, this.latestState.meanAnomaly);
     this.bounds = computeInstrumentBounds(parameters.eccentricity, parameters.wedges);
     this.rebuildConstruction();
+    this.applyOrbitalState(this.latestState);
   }
 
   setPalette(palette: ThemePalette): void {
@@ -218,13 +223,17 @@ export class HodographScene {
       return;
     }
     if (focus === 'sun') {
+      const anchor = vector(orbitWorld({ x: 0, y: 0 }, 0.18));
+      const planet = vector(orbitWorld(this.latestState.position, 0.17));
       this.rig.beginPointOfView(
-        this.sun.position,
-        new THREE.Vector3(this.bounds.center.x, this.bounds.center.y, this.bounds.center.z),
+        anchor,
+        planet,
       );
       return;
     }
-    const target = focus === 'planet' ? this.planet.position : this.hodographPoint.position;
+    const target = focus === 'planet'
+      ? vector(orbitWorld(this.latestState.position, 0.17))
+      : vector(hodographWorld(this.latestState.velocity, 0.2));
     this.rig.beginFollow(
       target,
       focus === 'planet' ? 4.7 : 4.15,
@@ -250,6 +259,21 @@ export class HodographScene {
   update(state: OrbitalState, timestamp: number): void {
     const deltaSeconds = Math.min(0.08, Math.max(0, (timestamp - this.lastTimestamp) / 1000));
     this.lastTimestamp = timestamp;
+    this.latestState = state;
+
+    const { position, focus, velocity } = this.applyOrbitalState(state);
+    if (this.cameraFocus === 'sun') this.rig.trackPointOfView(focus, position);
+    if (this.cameraFocus === 'planet') this.rig.trackFollow(position);
+    if (this.cameraFocus === 'hodograph') this.rig.trackFollow(velocity);
+    this.rig.update(this.camera, deltaSeconds);
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  private applyOrbitalState(state: OrbitalState): {
+    position: THREE.Vector3;
+    focus: THREE.Vector3;
+    velocity: THREE.Vector3;
+  } {
 
     const position = vector(orbitWorld(state.position, 0.17));
     const focus = vector(orbitWorld({ x: 0, y: 0 }, 0.18));
@@ -266,11 +290,7 @@ export class HodographScene {
     this.updateArrow(this.velocityArrow, center, velocity);
     this.updateBridge(bridge);
     this.updateActiveConstruction(activeWedgeIndex(state.meanAnomaly, this.parameters.wedges));
-    if (this.cameraFocus === 'sun') this.rig.trackPointOfView(focus);
-    if (this.cameraFocus === 'planet') this.rig.trackFollow(position);
-    if (this.cameraFocus === 'hodograph') this.rig.trackFollow(velocity);
-    this.rig.update(this.camera, deltaSeconds);
-    this.renderer.render(this.scene, this.camera);
+    return { position, focus, velocity };
   }
 
   destroy(): void {
