@@ -85,7 +85,10 @@ export class CameraRig {
       const vertical = Math.abs(corner.dot(up)) / verticalTangent - depthOffset;
       return Math.max(distance, horizontal, vertical, 0.3 - depthOffset);
     }, 0.1);
-    const distance = requiredDistance * 1.13;
+    // Projected bounds have already accounted for the active camera basis.
+    // Keep a deliberate but tight breathing margin so the construction reads
+    // as an instrument rather than a small object in a large stage.
+    const distance = requiredDistance * 1.045;
 
     this.minimumDistance = Math.max(0.55, requiredDistance * 0.14);
     this.maximumDistance = Math.max(distance * 6, bounds.radius * 8);

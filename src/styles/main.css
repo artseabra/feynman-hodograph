@@ -85,6 +85,18 @@ a:focus-visible {
   outline-offset: 3px;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .app-shell {
   width: min(1480px, calc(100% - 42px));
   display: flex;
@@ -589,11 +601,13 @@ input[type='range'] {
 .sound-state-button {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  min-height: 32px;
+  justify-content: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
   border: 1px solid var(--rule-bright);
   border-radius: 5px;
-  padding: 0 10px;
+  padding: 0;
   background: transparent;
   color: var(--ink-soft);
   cursor: pointer;
@@ -628,21 +642,6 @@ input[type='range'] {
   border-color: var(--hodograph);
   background: color-mix(in srgb, var(--hodograph) 10%, transparent);
   color: var(--ink);
-}
-
-.sound-lens {
-  min-width: min(100%, 245px);
-}
-
-.sound-lens select {
-  width: 100%;
-  min-height: 34px;
-  border: 1px solid var(--rule);
-  border-radius: 3px;
-  padding: 0 9px;
-  background: color-mix(in srgb, var(--paper) 88%, var(--paper-strong));
-  color: var(--ink);
-  font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 .control-note {

@@ -3,8 +3,9 @@ import type { CameraFocus, CameraView, OrbitalState, Point3, SceneBounds, ThemeP
 import {
   activeWedgeIndex,
   correspondenceBridge,
-  hodographGridExtent,
+  hodographGridFrame,
   hodographWorld,
+  orbitGridFrame,
   orbitWorld,
   sceneLayout,
 } from '../model/embedding';
@@ -295,13 +296,15 @@ export class HodographScene {
   }
 
   private addOrbitSpace(samples: ReturnType<typeof equalTimeSamples>, eccentricity: number): void {
+    const gridFrame = orbitGridFrame(eccentricity);
     const grid = new THREE.GridHelper(
-      sceneLayout.orbitGridExtent * 2 * sceneLayout.orbitScale,
+      gridFrame.extent * 2 * sceneLayout.orbitScale,
       12,
       color(this.palette.grid),
       color(this.palette.grid),
     );
-    grid.position.set(sceneLayout.orbitOrigin.x, sceneLayout.orbitOrigin.y - 0.12, sceneLayout.orbitOrigin.z);
+    const gridOrigin = orbitWorld(gridFrame.center, -0.12);
+    grid.position.set(gridOrigin.x, gridOrigin.y, gridOrigin.z);
     materialsOf(grid).forEach(material => setOpacity(material, 0.25));
     this.construction.add(grid);
 
@@ -344,10 +347,11 @@ export class HodographScene {
 
   private addVelocitySpace(samples: ReturnType<typeof equalTimeSamples>, eccentricity: number): void {
     const circle = hodographCircle(eccentricity);
-    const gridExtent = hodographGridExtent(circle.center.y + circle.radius);
-    const grid = new THREE.GridHelper(gridExtent * 2 * sceneLayout.hodographScale, 12, color(this.palette.grid), color(this.palette.grid));
+    const gridFrame = hodographGridFrame(eccentricity);
+    const grid = new THREE.GridHelper(gridFrame.extent * 2 * sceneLayout.hodographScale, 12, color(this.palette.grid), color(this.palette.grid));
     grid.rotation.x = Math.PI / 2;
-    grid.position.set(sceneLayout.hodographOrigin.x, sceneLayout.hodographOrigin.y, sceneLayout.hodographOrigin.z - 0.14);
+    const gridOrigin = hodographWorld(gridFrame.center, -0.14);
+    grid.position.set(gridOrigin.x, gridOrigin.y, gridOrigin.z);
     materialsOf(grid).forEach(material => setOpacity(material, 0.28));
     this.construction.add(grid);
 

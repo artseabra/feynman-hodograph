@@ -3,7 +3,7 @@ import { AudioEngine } from './audio/audioEngine';
 import { crossedApsisEvents, crossedWedgeEvents, hodographCircle, orbitalState, TAU } from './model/orbit';
 import { FallbackRenderer } from './scene/fallback';
 import { HodographScene } from './scene/hodographScene';
-import type { AudioMix, CameraFocus, CameraView, InstrumentState, SonificationLens, ThemeName, ThemePalette } from './types';
+import type { AudioMix, CameraFocus, CameraView, InstrumentState, ThemeName, ThemePalette } from './types';
 
 const palettes: Record<ThemeName, ThemePalette> = {
   light: {
@@ -101,7 +101,6 @@ const cameraReset = getElement<HTMLButtonElement>('#camera-reset');
 const soundEnable = getElement<HTMLButtonElement>('#sound-enable');
 const soundStateLabel = getElement<HTMLElement>('#sound-state-label');
 const soundStateIcon = getElement<HTMLElement>('.sound-state-icon');
-const soundLens = getElement<HTMLSelectElement>('#sound-lens');
 const narrationAudio = getElement<HTMLAudioElement>('#narration-audio');
 const narrationPlay = getElement<HTMLButtonElement>('#narration-play');
 const narrationPlayIcon = getElement<HTMLElement>('.narration-play-icon');
@@ -111,13 +110,15 @@ const narrationTime = getElement<HTMLOutputElement>('#narration-time');
 
 const audioControls = {
   master: getElement<HTMLInputElement>('#sound-master'),
-  atmosphere: getElement<HTMLInputElement>('#sound-atmosphere'),
+  gravity: getElement<HTMLInputElement>('#sound-gravity'),
+  velocity: getElement<HTMLInputElement>('#sound-velocity'),
   markers: getElement<HTMLInputElement>('#sound-markers'),
 };
 
 const audioValues = {
   master: getElement<HTMLOutputElement>('#sound-master-value'),
-  atmosphere: getElement<HTMLOutputElement>('#sound-atmosphere-value'),
+  gravity: getElement<HTMLOutputElement>('#sound-gravity-value'),
+  velocity: getElement<HTMLOutputElement>('#sound-velocity-value'),
   markers: getElement<HTMLOutputElement>('#sound-markers-value'),
 };
 
@@ -134,9 +135,9 @@ const state: InstrumentState = {
   audio: {
     enabled: false,
     muted: false,
-    lens: soundLens.value as SonificationLens,
     master: Number(audioControls.master.value),
-    atmosphere: Number(audioControls.atmosphere.value),
+    gravity: Number(audioControls.gravity.value),
+    velocity: Number(audioControls.velocity.value),
     markers: Number(audioControls.markers.value),
   },
 };
@@ -164,7 +165,7 @@ function updateControlReadouts(): void {
   wedgesValue.value = String(state.wedges);
   speedValue.value = `${state.speed.toFixed(1)}×`;
   Object.entries(audioValues).forEach(([key, output]) => {
-    const mixKey = key as keyof Pick<AudioMix, 'master' | 'atmosphere' | 'markers'>;
+    const mixKey = key as keyof Pick<AudioMix, 'master' | 'gravity' | 'velocity' | 'markers'>;
     output.value = percentage(state.audio[mixKey]);
   });
   playToggle.textContent = state.playing ? 'Pause' : 'Play';
@@ -256,7 +257,7 @@ function activateDock(nextDock: DockName | null): void {
 }
 
 function updateSoundButton(): void {
-  const label = !state.audio.enabled ? 'Enable' : state.audio.muted ? 'Muted' : 'Sound on';
+  const label = !state.audio.enabled ? 'Enable sound' : state.audio.muted ? 'Unmute sound' : 'Mute sound';
   soundStateLabel.textContent = label;
   soundStateIcon.textContent = state.audio.enabled && !state.audio.muted ? '◉' : '◌';
   soundEnable.classList.toggle('is-active', state.audio.enabled && !state.audio.muted);
@@ -288,7 +289,7 @@ function dismissStageGuide(): void {
 
 function syncAudio(): void {
   Object.entries(audioControls).forEach(([key, input]) => {
-    const mixKey = key as keyof Pick<AudioMix, 'master' | 'atmosphere' | 'markers'>;
+    const mixKey = key as keyof Pick<AudioMix, 'master' | 'gravity' | 'velocity' | 'markers'>;
     state.audio[mixKey] = Number(input.value);
   });
   audio.setMix(currentMix());
@@ -393,10 +394,6 @@ soundEnable.addEventListener('click', async () => {
 });
 
 Object.values(audioControls).forEach(input => input.addEventListener('input', syncAudio));
-soundLens.addEventListener('change', () => {
-  state.audio.lens = soundLens.value as SonificationLens;
-  audio.setMix(currentMix());
-});
 
 const resizeObserver = new ResizeObserver(resizeScene);
 resizeObserver.observe(stageShell);

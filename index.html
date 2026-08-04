@@ -127,31 +127,25 @@
 
             <section id="panel-sound" class="dock-panel" role="region" aria-labelledby="tab-sound" data-panel="sound" hidden>
               <div class="control-group control-group-actions sound-actions">
-                <span class="control-label">Keplerian sonification</span>
+                <span class="control-label">Orbital score</span>
                 <div class="button-row">
-                  <button id="sound-enable" class="sound-state-button" type="button" aria-label="Enable sound" aria-pressed="false">
+                  <button id="sound-enable" class="sound-state-button" type="button" aria-label="Enable sound" aria-pressed="false" title="Enable sound">
                     <span class="sound-state-icon" aria-hidden="true">◌</span>
-                    <span id="sound-state-label">Enable</span>
+                    <span id="sound-state-label" class="sr-only">Enable sound</span>
                   </button>
                 </div>
               </div>
-              <div class="control-group control-group-wide sound-lens">
-                <label for="sound-lens">Listening lens</label>
-                <select id="sound-lens">
-                  <option value="keplerian">Keplerian relationship</option>
-                  <option value="hodograph">Hodograph circle</option>
-                  <option value="construction">Equal-time construction</option>
-                </select>
-              </div>
               <div class="audio-controls" aria-describedby="sound-note">
-                <label for="sound-master">Master <output id="sound-master-value">70%</output></label>
-                <input id="sound-master" type="range" min="0" max="1" step="0.01" value="0.70" />
-                <label for="sound-atmosphere">Potential field <output id="sound-atmosphere-value">74%</output></label>
-                <input id="sound-atmosphere" type="range" min="0" max="1" step="0.01" value="0.74" />
-                <label for="sound-markers">Wedges &amp; apsides <output id="sound-markers-value">86%</output></label>
-                <input id="sound-markers" type="range" min="0" max="1" step="0.01" value="0.86" />
+                <label for="sound-master">Master <output id="sound-master-value">78%</output></label>
+                <input id="sound-master" type="range" min="0" max="1" step="0.01" value="0.78" />
+                <label for="sound-gravity">Gravity field <output id="sound-gravity-value">68%</output></label>
+                <input id="sound-gravity" type="range" min="0" max="1" step="0.01" value="0.68" />
+                <label for="sound-velocity">Hodograph field <output id="sound-velocity-value">56%</output></label>
+                <input id="sound-velocity" type="range" min="0" max="1" step="0.01" value="0.56" />
+                <label for="sound-markers">Equal-time marks <output id="sound-markers-value">92%</output></label>
+                <input id="sound-markers" type="range" min="0" max="1" step="0.01" value="0.92" />
               </div>
-              <p id="sound-note" class="control-note">The continuous field follows 1/r and brightens with 1/r². Exact mean-anomaly crossings and apsides strike the construction. Interpretive sonification, not planetary sound.</p>
+              <p id="sound-note" class="control-note">Gravity changes density with 1/r and brightness with 1/r². The hodograph field crossfades four fixed resonators with the velocity vector’s angle—never engine RPM. Exact equal-time boundaries and apsides make the marks. Interpretive sonification, not planetary sound.</p>
             </section>
           </div>
           </section>

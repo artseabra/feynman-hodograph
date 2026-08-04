@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { crossedWedgeEvents, orbitalState, TAU } from '../src/model/orbit';
-import { markerTuning, orbitalMeasures, sonificationLensProfile } from '../src/audio/sonification';
+import { apsisTuning, gravityFrame, hodographFrame, markerTuning, orbitalMeasures } from '../src/audio/sonification';
 
 describe('Keplerian sonification mapping', () => {
   it('derives the conserved angular momentum and hodograph radius from the orbit', () => {
@@ -25,30 +25,48 @@ describe('Keplerian sonification mapping', () => {
     expect(measures.gravitationalFieldNormalized).toBe(0.5);
   });
 
-  it('makes the potential and field stronger as the planet approaches the focus', () => {
-    const perihelion = orbitalMeasures(orbitalState(0.55, 0));
-    const aphelion = orbitalMeasures(orbitalState(0.55, Math.PI));
+  it('makes the gravity stem denser and brighter as the planet approaches the focus', () => {
+    const perihelionState = orbitalState(0.55, 0);
+    const aphelionState = orbitalState(0.55, Math.PI);
+    const perihelion = orbitalMeasures(perihelionState);
+    const aphelion = orbitalMeasures(aphelionState);
 
     expect(perihelion.potential).toBeGreaterThan(aphelion.potential);
     expect(perihelion.gravitationalField).toBeGreaterThan(aphelion.gravitationalField);
     expect(perihelion.gravitationalFieldNormalized).toBeGreaterThan(aphelion.gravitationalFieldNormalized);
+    expect(gravityFrame(perihelionState).gain).toBeGreaterThan(gravityFrame(aphelionState).gain);
+    expect(gravityFrame(perihelionState).brightness).toBeGreaterThan(gravityFrame(aphelionState).brightness);
   });
 
-  it('uses the exact equal-time crossing to create a bounded resonant mark', () => {
+  it('uses the exact equal-time crossing to create a bounded, centered mark', () => {
     const [crossing] = crossedWedgeEvents(0, TAU / 16, 16);
     if (!crossing) throw new Error('Expected first wedge crossing');
     const tuning = markerTuning(crossing, orbitalState(0.55, crossing.meanAnomaly));
 
-    expect(tuning.frequency).toBeGreaterThanOrEqual(176);
-    expect(tuning.frequency).toBeLessThanOrEqual(1_600);
-    expect(tuning.partials).toHaveLength(4);
+    expect(tuning.frequency).toBeGreaterThanOrEqual(220);
+    expect(tuning.frequency).toBeLessThanOrEqual(880);
+    expect(tuning.overtone).toBeGreaterThan(1);
     expect(tuning.intensity).toBeGreaterThan(0.5);
-    expect(Math.abs(tuning.pan)).toBeLessThanOrEqual(0.18);
+    expect(tuning.duration).toBeGreaterThan(0);
   });
 
-  it('changes the mix emphasis for each listening lens without changing the orbital source', () => {
-    expect(sonificationLensProfile('keplerian')).toMatchObject({ atmosphere: 1, markers: 1, fieldBrightness: 1 });
-    expect(sonificationLensProfile('hodograph').fieldBrightness).toBeGreaterThan(1);
-    expect(sonificationLensProfile('construction').markers).toBeGreaterThan(1);
+  it('maps the hodograph circle into a normalized four-resonator crossfade', () => {
+    const north = hodographFrame(orbitalState(0, 0));
+    const west = hodographFrame(orbitalState(0, Math.PI / 2));
+
+    expect(north.weights.reduce((total, weight) => total + weight, 0)).toBeCloseTo(1, 12);
+    expect(west.weights.reduce((total, weight) => total + weight, 0)).toBeCloseTo(1, 12);
+    expect(north.weights[1]).toBeGreaterThan(0.99);
+    expect(west.weights[2]).toBeGreaterThan(0.99);
+    expect(north.brightness).toBeGreaterThan(0);
+  });
+
+  it('keeps perihelion and aphelion as distinct landmark voices', () => {
+    const state = orbitalState(0.55, 0);
+    const perihelion = apsisTuning('perihelion', state);
+    const aphelion = apsisTuning('aphelion', state);
+
+    expect(perihelion.frequency).toBeGreaterThan(aphelion.frequency);
+    expect(perihelion.intensity).toBeGreaterThan(aphelion.intensity);
   });
 });

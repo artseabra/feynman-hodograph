@@ -1,7 +1,5 @@
-import { normalizeAngle, TAU, type WedgeCrossing } from '../model/orbit';
-import type { OrbitalState, SonificationLens } from '../types';
-
-const FIFTHS = [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5] as const;
+import { normalizeAngle, TAU, type ApsisCrossing, type WedgeCrossing } from '../model/orbit';
+import type { OrbitalState } from '../types';
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
@@ -21,8 +19,8 @@ export interface OrbitalMeasures {
 
 /**
  * Dimensionless measures of the normalized two-body solution (a = μ = 1).
- * The values are intentionally exposed as a separate pure layer so the sound
- * score can be tested without an AudioContext.
+ * The score maps these measures rather than the animation frame rate: gravity
+ * is 1/r and 1/r²; the velocity stem is the phase of the actual hodograph.
  */
 export function orbitalMeasures(state: OrbitalState): OrbitalMeasures {
   const e = state.eccentricity;
@@ -60,63 +58,87 @@ export function orbitalMeasures(state: OrbitalState): OrbitalMeasures {
   };
 }
 
-export interface MarkerTuning {
-  frequency: number;
-  partials: readonly number[];
-  intensity: number;
-  duration: number;
-  pan: number;
+export interface GravityFrame {
+  gain: number;
+  brightness: number;
 }
 
 /**
- * Each equal-time boundary receives a pitch on the circle of fifths. Its
- * register, decay and partial balance are drawn from the exact orbital state
- * at the boundary—not from the display frame that happened to notice it.
+ * Gravity is intentionally not pitch-mapped. A changing pitch makes distance
+ * read as engine RPM; here proximity opens the spectrum and raises density.
  */
-export function markerTuning(crossing: WedgeCrossing, state: OrbitalState): MarkerTuning {
+export function gravityFrame(state: OrbitalState): GravityFrame {
   const measures = orbitalMeasures(state);
-  const pitchClass = FIFTHS[crossing.index % FIFTHS.length];
-  const register = Math.floor(crossing.index / FIFTHS.length);
-  // The register starts above the laptop-speaker trough. The pitch classes,
-  // timing, envelope, and changing partial balance still come from the
-  // construction; this is an audibility choice, not an arbitrary sequence.
-  const base = 220 * Math.pow(2, (measures.hodographRadius - 1) * 0.22);
-  const frequency = clamp(base * Math.pow(2, (pitchClass + register * 12) / 12), 176, 1_600);
-  const phasePan = Math.cos(measures.hodographAngle);
-
   return {
-    frequency,
-    partials: [
-      1,
-      0.3 + measures.kineticNormalized * 0.26,
-      0.12 + measures.potentialNormalized * 0.18,
-      0.05 + Math.min(0.14, Math.abs(measures.radialVelocity) * 0.12),
-    ],
-    intensity: 0.56 + measures.kineticNormalized * 0.44,
-    duration: 0.46 + (1 - measures.potentialNormalized) * 0.42,
-    // The continuous score remains centered; only discrete construction marks
-    // are placed a little off-centre, following the hodograph itself.
-    pan: clamp(phasePan * 0.18, -0.18, 0.18),
+    gain: 0.18 + measures.gravitationalFieldNormalized * 0.82,
+    brightness: 0.16 + measures.gravitationalFieldNormalized * 0.84,
   };
 }
 
-export interface SonificationLensProfile {
-  atmosphere: number;
-  markers: number;
-  markerPitch: number;
-  fieldBrightness: number;
+export interface HodographFrame {
+  /** One non-negative projection for each cardinal direction of the circle. */
+  weights: readonly [number, number, number, number];
+  gain: number;
+  brightness: number;
 }
 
-export function sonificationLensProfile(lens: SonificationLens): SonificationLensProfile {
-  switch (lens) {
-    case 'hodograph':
-      return { atmosphere: 0.74, markers: 0.84, markerPitch: Math.pow(2, 2 / 12), fieldBrightness: 1.2 };
-    case 'construction':
-      return { atmosphere: 0.86, markers: 1.16, markerPitch: 1, fieldBrightness: 0.82 };
-    case 'keplerian':
-    default:
-      return { atmosphere: 1, markers: 1, markerPitch: 1, fieldBrightness: 1 };
-  }
+/**
+ * Four stationary resonators are crossfaded by the normalized velocity vector
+ * itself. This makes the circular hodograph a timbral path, not a continuously
+ * accelerating oscillator or a moving-engine imitation.
+ */
+export function hodographFrame(state: OrbitalState): HodographFrame {
+  const measures = orbitalMeasures(state);
+  const angle = measures.hodographAngle;
+  const raw = [
+    Math.max(0, Math.cos(angle)),
+    Math.max(0, Math.sin(angle)),
+    Math.max(0, -Math.cos(angle)),
+    Math.max(0, -Math.sin(angle)),
+  ] as const;
+  const sum = raw.reduce((total, value) => total + value, 0) || 1;
+  return {
+    weights: [raw[0] / sum, raw[1] / sum, raw[2] / sum, raw[3] / sum],
+    gain: 0.24 + measures.kineticNormalized * 0.76,
+    brightness: 0.2 + measures.kineticNormalized * 0.8,
+  };
+}
+
+export interface MarkerTuning {
+  frequency: number;
+  overtone: number;
+  intensity: number;
+  duration: number;
+}
+
+const HODOGRAPH_SCALE = [0, 2, 3, 5, 7, 9, 10, 12] as const;
+
+/**
+ * Equal-time boundaries receive pitches drawn from the angle around the
+ * hodograph circle. The cycle is therefore spatially closed: a full circuit
+ * returns to its opening pitch without an arbitrary index-based sequence.
+ */
+export function markerTuning(_crossing: WedgeCrossing, state: OrbitalState): MarkerTuning {
+  const measures = orbitalMeasures(state);
+  const step = Math.min(HODOGRAPH_SCALE.length - 1, Math.floor(measures.hodographAngle / TAU * HODOGRAPH_SCALE.length));
+  const frequency = 293.6648 * Math.pow(2, HODOGRAPH_SCALE[step] / 12);
+  return {
+    frequency: clamp(frequency, 220, 880),
+    overtone: 2 + (measures.kineticNormalized > 0.64 ? 0.01 : -0.01),
+    intensity: 0.64 + measures.kineticNormalized * 0.36,
+    duration: 0.2 + (1 - measures.potentialNormalized) * 0.18,
+  };
+}
+
+export function apsisTuning(kind: ApsisCrossing['kind'], state: OrbitalState): MarkerTuning {
+  void state;
+  const perihelion = kind === 'perihelion';
+  return {
+    frequency: perihelion ? 493.8833 : 329.6276,
+    overtone: perihelion ? 1.5 : 2,
+    intensity: perihelion ? 0.96 : 0.74,
+    duration: perihelion ? 0.62 : 0.48,
+  };
 }
 
 export function hodographPhaseDegrees(state: OrbitalState): number {

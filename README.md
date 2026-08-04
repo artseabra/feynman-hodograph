@@ -25,17 +25,19 @@ Local changes do not affect it until an intentional GitHub/Vercel publish.
 
 - Drag to orbit the linked construction.
 - Shift-drag or right-drag to pan.
-- Scroll normally to move through the page. Use Option/Alt-scroll (or
-  Ctrl-scroll) and pinch to dolly the canvas.
+- Scroll normally to move through the page. After choosing **Explore** (or
+  interacting with the construction), plain scroll and pinch dolly the canvas;
+  click outside the stage to return scroll to the page.
 - Use the Camera dock for canonical proof, front, literal overhead, and
   literal side views.
 - **Orbit with Sun**, **Planet**, and **Hodograph** are companion cameras:
   they pin the selected point beneath the camera while local orbit, pan, and
   dolly remain available. Any canonical view returns to the free camera.
-- Sound is opt-in. The continuous potential field and resonant marks are
-  derived from the normalized Kepler state; exact equal-time crossings and the
-  two apsides trigger events. It is interpretive sonification, not an
-  astronomical recording.
+- Sound is opt-in and split into three explicit stems: gravity maps 1/r and
+  1/r² to density and brightness, the hodograph maps velocity-vector phase to
+  four stationary resonators, and exact equal-time crossings plus apsides make
+  audible marks. It is interpretive sonification, not an astronomical
+  recording.
 
 ## Mathematical and historical note
 

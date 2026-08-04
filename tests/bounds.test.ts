@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { computeInstrumentBounds } from '../src/model/bounds';
-import { correspondenceBridge, hodographWorld, orbitWorld, sceneLayout } from '../src/model/embedding';
+import { correspondenceBridge, hodographGridFrame, hodographWorld, orbitGridFrame, orbitWorld } from '../src/model/embedding';
 import { equalTimeSamples, MAX_ECCENTRICITY, orbitalState, TAU } from '../src/model/orbit';
 
 function expectContained(
@@ -42,9 +42,24 @@ describe('spatial bounds and correspondence', () => {
   it('contains both physical grids and every equal-time correspondence bridge', () => {
     const eccentricity = MAX_ECCENTRICITY;
     const bounds = computeInstrumentBounds(eccentricity, 36);
-    const extent = sceneLayout.orbitGridExtent;
-    expectContained(bounds, orbitWorld({ x: -extent, y: -extent }, -0.14));
-    expectContained(bounds, orbitWorld({ x: extent, y: extent }, -0.14));
+    const orbitGrid = orbitGridFrame(eccentricity);
+    const hodographGrid = hodographGridFrame(eccentricity);
+    expectContained(bounds, orbitWorld({
+      x: orbitGrid.center.x - orbitGrid.extent,
+      y: orbitGrid.center.y - orbitGrid.extent,
+    }, -0.14));
+    expectContained(bounds, orbitWorld({
+      x: orbitGrid.center.x + orbitGrid.extent,
+      y: orbitGrid.center.y + orbitGrid.extent,
+    }, -0.14));
+    expectContained(bounds, hodographWorld({
+      x: hodographGrid.center.x - hodographGrid.extent,
+      y: hodographGrid.center.y - hodographGrid.extent,
+    }, -0.14));
+    expectContained(bounds, hodographWorld({
+      x: hodographGrid.center.x + hodographGrid.extent,
+      y: hodographGrid.center.y + hodographGrid.extent,
+    }, -0.14));
     equalTimeSamples(eccentricity, 36).forEach(sample => {
       correspondenceBridge(sample).forEach(point => expectContained(bounds, point));
     });

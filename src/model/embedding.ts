@@ -1,5 +1,5 @@
 import type { OrbitalState, Point2, Point3 } from '../types';
-import { normalizeAngle, TAU } from './orbit';
+import { hodographCircle, normalizeAngle, TAU } from './orbit';
 
 // Position space and velocity space are different vector spaces. This is a
 // deliberate spatial embedding: the orbital construction lies horizontally,
@@ -12,7 +12,13 @@ const HODOGRAPH_SCALE = 1.25;
 // The grid is a construction field, not a second scene. Keep it close to the
 // ellipse so it supplies depth and measurement without turning the proof into
 // a tiny object marooned in empty tabletop.
-const ORBIT_GRID_EXTENT = 1.85;
+// The grids are measurement surfaces, not blank tabletops. They are framed
+// around the actual ellipse / hodograph rather than around their local
+// origins, so the proof can occupy the stage without sacrificing any visible
+// construction.
+const ORBIT_GRID_EXTENT = 1.36;
+const ORBIT_GRID_MARGIN = 0.36;
+const HODOGRAPH_GRID_MARGIN = 0.42;
 
 export const sceneLayout = {
   orbitOrigin: ORBIT_ORIGIN,
@@ -21,6 +27,31 @@ export const sceneLayout = {
   hodographScale: HODOGRAPH_SCALE,
   orbitGridExtent: ORBIT_GRID_EXTENT,
 };
+
+export interface GridFrame {
+  center: Point2;
+  extent: number;
+}
+
+export function orbitGridFrame(eccentricity: number): GridFrame {
+  return {
+    // The ellipse and reference circle are centred at x = −e. The Sun stays
+    // visibly inside this frame for every supported eccentricity.
+    center: { x: -eccentricity, y: 0 },
+    extent: 1 + ORBIT_GRID_MARGIN,
+  };
+}
+
+export function hodographGridFrame(eccentricity: number): GridFrame {
+  const circle = hodographCircle(eccentricity);
+  return {
+    // Center the vertical sheet on the displaced circle while retaining the
+    // velocity origin inside it. The offset is therefore legible, not lost in
+    // a large empty lower half of the canvas.
+    center: circle.center,
+    extent: circle.radius + HODOGRAPH_GRID_MARGIN,
+  };
+}
 
 export function orbitWorld(point: Point2, elevation = 0): Point3 {
   return {
@@ -36,10 +67,6 @@ export function hodographWorld(point: Point2, depth = 0): Point3 {
     y: HODOGRAPH_ORIGIN.y + point.y * HODOGRAPH_SCALE,
     z: HODOGRAPH_ORIGIN.z + depth,
   };
-}
-
-export function hodographGridExtent(topOfCircle: number): number {
-  return Math.max(2.55, topOfCircle + 0.5);
 }
 
 export function activeWedgeIndex(meanAnomaly: number, wedges: number): number {

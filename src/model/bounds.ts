@@ -1,5 +1,5 @@
 import type { Point3, SceneBounds } from '../types';
-import { correspondenceBridge, hodographGridExtent, hodographWorld, orbitWorld, sceneLayout } from './embedding';
+import { correspondenceBridge, hodographGridFrame, hodographWorld, orbitGridFrame, orbitWorld } from './embedding';
 import { clampEccentricity, equalTimeSamples, hodographCircle, orbitalState, TAU } from './orbit';
 
 export { sceneLayout } from './embedding';
@@ -39,15 +39,20 @@ class BoundsAccumulator {
 }
 
 function includeGrid(bounds: BoundsAccumulator, eccentricity: number): void {
-  const orbitExtent = sceneLayout.orbitGridExtent;
-  [-orbitExtent, orbitExtent].forEach(x => {
-    [-orbitExtent, orbitExtent].forEach(y => bounds.include(orbitWorld({ x, y }, -0.14), 0.08));
+  const orbitGrid = orbitGridFrame(eccentricity);
+  [-orbitGrid.extent, orbitGrid.extent].forEach(x => {
+    [-orbitGrid.extent, orbitGrid.extent].forEach(y => bounds.include(orbitWorld({
+      x: orbitGrid.center.x + x,
+      y: orbitGrid.center.y + y,
+    }, -0.14), 0.08));
   });
 
-  const circle = hodographCircle(eccentricity);
-  const extent = hodographGridExtent(circle.center.y + circle.radius);
-  [-extent, extent].forEach(x => {
-    [-extent, extent].forEach(y => bounds.include(hodographWorld({ x, y }, -0.14), 0.08));
+  const hodographGrid = hodographGridFrame(eccentricity);
+  [-hodographGrid.extent, hodographGrid.extent].forEach(x => {
+    [-hodographGrid.extent, hodographGrid.extent].forEach(y => bounds.include(hodographWorld({
+      x: hodographGrid.center.x + x,
+      y: hodographGrid.center.y + y,
+    }, -0.14), 0.08));
   });
 }
 
