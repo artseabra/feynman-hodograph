@@ -1,4 +1,4 @@
-import type { Point3, SceneBounds } from '../types';
+import type { ConstructionLayout, Point3, SceneBounds } from '../types';
 import { correspondenceBridge, hodographGridFrame, hodographWorld, orbitGridFrame, orbitWorld } from './embedding';
 import { clampEccentricity, equalTimeSamples, hodographCircle, orbitalState, TAU } from './orbit';
 
@@ -38,13 +38,17 @@ class BoundsAccumulator {
   }
 }
 
-function includeGrid(bounds: BoundsAccumulator, eccentricity: number): void {
+function includeGrid(
+  bounds: BoundsAccumulator,
+  eccentricity: number,
+  layout: ConstructionLayout,
+): void {
   const orbitGrid = orbitGridFrame(eccentricity);
   [-orbitGrid.extent, orbitGrid.extent].forEach(x => {
     [-orbitGrid.extent, orbitGrid.extent].forEach(y => bounds.include(orbitWorld({
       x: orbitGrid.center.x + x,
       y: orbitGrid.center.y + y,
-    }, eccentricity, -0.14), 0.08));
+    }, eccentricity, -0.14, layout), 0.08));
   });
 
   const hodographGrid = hodographGridFrame(eccentricity);
@@ -52,11 +56,15 @@ function includeGrid(bounds: BoundsAccumulator, eccentricity: number): void {
     [-hodographGrid.extent, hodographGrid.extent].forEach(y => bounds.include(hodographWorld({
       x: hodographGrid.center.x + x,
       y: hodographGrid.center.y + y,
-    }, eccentricity, -0.14), 0.08));
+    }, eccentricity, -0.14, layout), 0.08));
   });
 }
 
-export function computeInstrumentBounds(eccentricity: number, wedges: number): SceneBounds {
+export function computeInstrumentBounds(
+  eccentricity: number,
+  wedges: number,
+  layout: ConstructionLayout = 'merged',
+): SceneBounds {
   const bounds = new BoundsAccumulator();
   const e = clampEccentricity(eccentricity);
   const samples = equalTimeSamples(e, wedges);
@@ -66,19 +74,19 @@ export function computeInstrumentBounds(eccentricity: number, wedges: number): S
   for (let index = 0; index <= 192; index += 1) {
     const anomaly = index / 192 * TAU;
     const state = orbitalState(e, anomaly);
-    bounds.include(orbitWorld(state.position, e), 0.2);
-    bounds.include(hodographWorld(state.velocity, e), 0.2);
-    bounds.include(orbitWorld({ x: Math.cos(anomaly) - e, y: Math.sin(anomaly) }, e), 0.1);
+    bounds.include(orbitWorld(state.position, e, 0, layout), 0.2);
+    bounds.include(hodographWorld(state.velocity, e, 0, layout), 0.2);
+    bounds.include(orbitWorld({ x: Math.cos(anomaly) - e, y: Math.sin(anomaly) }, e, 0, layout), 0.1);
   }
 
-  bounds.include(orbitWorld({ x: 0, y: 0 }, e, 0.22), 0.24);
+  bounds.include(orbitWorld({ x: 0, y: 0 }, e, 0.22, layout), 0.24);
   const circle = hodographCircle(e);
-  bounds.include(hodographWorld({ x: 0, y: 0 }, e, 0.12), 0.16);
-  bounds.include(hodographWorld(circle.center, e, 0.12), 0.16);
+  bounds.include(hodographWorld({ x: 0, y: 0 }, e, 0.12, layout), 0.16);
+  bounds.include(hodographWorld(circle.center, e, 0.12, layout), 0.16);
 
   samples.forEach(sample => {
-    correspondenceBridge(sample).forEach(point => bounds.include(point, 0.16));
+    correspondenceBridge(sample, layout).forEach(point => bounds.include(point, 0.16));
   });
-  includeGrid(bounds, e);
+  includeGrid(bounds, e, layout);
   return bounds.finish();
 }

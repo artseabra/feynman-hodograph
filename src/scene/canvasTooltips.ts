@@ -13,7 +13,6 @@ export type SceneTooltipId =
   | 'hodograph-circle'
   | 'hodograph-point'
   | 'hodograph-center'
-  | 'center-offset'
   | 'hodograph-radius'
   | 'velocity-change-chain'
   | 'velocity-samples'
@@ -34,6 +33,8 @@ export interface CanvasTooltipTarget {
   id: SceneTooltipId;
   objects: readonly THREE.Object3D[];
   anchor: () => THREE.Vector3;
+  /** Anchor pointer tooltips to the picked member of a grouped target. */
+  anchorAtIntersection?: boolean;
   priority: number;
 }
 
@@ -42,87 +43,123 @@ interface RegisteredTarget extends CanvasTooltipTarget {
   hotspot: HTMLButtonElement;
 }
 
+interface PickedTarget {
+  target: RegisteredTarget;
+  anchor: THREE.Vector3 | null;
+}
+
 type OpenMode = 'hover' | 'touch' | 'keyboard';
+
+export interface TooltipHitCandidate<T> {
+  target: T;
+  distance: number;
+  priority: number;
+}
+
+/**
+ * Intersections this close together are treated as parts of one visual layer,
+ * so a specific proof object can win over the broad plane or line beneath it.
+ * Outside that narrow band, the genuinely frontmost surface always wins.
+ */
+export const TOOLTIP_NEAR_DEPTH_TOLERANCE = 0.04;
+
+export function selectTooltipCandidate<T>(
+  candidates: readonly TooltipHitCandidate<T>[],
+  nearDepthTolerance = TOOLTIP_NEAR_DEPTH_TOLERANCE,
+): TooltipHitCandidate<T> | null {
+  const validCandidates = candidates.filter(candidate => (
+    Number.isFinite(candidate.distance) && candidate.distance >= 0
+  ));
+  if (validCandidates.length === 0) return null;
+
+  const nearestDistance = Math.min(...validCandidates.map(candidate => candidate.distance));
+  const tolerance = Math.max(0, nearDepthTolerance);
+  const nearCandidates = validCandidates.filter(candidate => (
+    candidate.distance <= nearestDistance + tolerance
+  ));
+
+  return nearCandidates.reduce((best, candidate) => {
+    if (candidate.priority !== best.priority) {
+      return candidate.priority > best.priority ? candidate : best;
+    }
+    return candidate.distance < best.distance ? candidate : best;
+  });
+}
 
 const TOOLTIP_COPY: Record<SceneTooltipId, TooltipDefinition> = {
   'orbital-plane': {
     label: 'Position space',
-    explainer: 'The physical orbit and equal-time area construction live on this horizontal plane.',
+    explainer: 'Here lie the Sun, radius vector, equal-time wedges, and the orbit whose shape must be recovered. The decisive proof move comes after translating the motion into velocity space.',
     accent: 'grid',
   },
   orbit: {
-    label: 'Kepler ellipse',
-    explainer: 'The planet’s bound position orbit. The Sun sits at one focus rather than at the ellipse’s geometric centre.',
+    label: 'Orbit · result to recover',
+    explainer: 'The ellipse is the result, not the proof’s starting mechanism. The construction must show why an inverse-square pull about the Sun produces this position trace.',
     accent: 'orbit',
   },
   'reference-circle': {
     label: 'Auxiliary circle',
-    explainer: 'A geometric reference used to relate uniform mean anomaly to the eccentric anomaly that locates the planet on the ellipse.',
+    explainer: 'The ellipse can be read as this circle flattened in one direction. At e = 0 they coincide exactly; near that circular limit the instrument omits a redundant second stroke.',
     accent: 'construction',
   },
   'equal-time-wedges': {
     label: 'Equal-time wedges',
-    explainer: 'Each ribbon spans the same interval of mean anomaly—and therefore the same time. Conservation of angular momentum makes the swept areas equal.',
+    explainer: 'Kepler’s area law makes the Sun-to-planet line sweep equal areas in equal times. Those matched intervals let the inverse-square changes of velocity be compared and chained.',
     accent: 'wedge',
   },
   sun: {
     label: 'Sun · force centre',
-    explainer: 'The source of the inverse-square attraction and one focus of the ellipse. Every radius vector and swept area begins here.',
+    explainer: 'Every short change of velocity points toward this inverse-square force centre. The changing Sunward directions become the geometry of the velocity-space construction.',
     accent: 'sun',
   },
   planet: {
-    label: 'Planet · current position',
-    explainer: 'The orbiting body at the current instant. Its partner point in velocity space advances at exactly the same time.',
+    label: 'Planet · position event',
+    explainer: 'The orange planet and the blue velocity point show one event twice. Here the event is located in position space; above, the same instant is translated into velocity.',
     accent: 'orbit',
   },
   'radius-vector': {
     label: 'Radius vector',
-    explainer: 'The instantaneous displacement from Sun to planet. Its constant area-sweep rate is Kepler’s second law.',
+    explainer: 'This Sun-to-planet line fixes the force direction and sweeps the equal areas of Kepler’s time law. Together those constraints determine each step in the velocity-change argument.',
     accent: 'orbit',
   },
   'velocity-plane': {
     label: 'Velocity space',
-    explainer: 'This is not a second physical orbit. Its display radius is normalized because position and velocity have different units; all within-plane ratios remain exact.',
+    explainer: 'The proof stops asking only where the planet is and instead chains how its velocity changes. In this translated space, the inverse-square dynamics expose a circle.',
     accent: 'grid',
   },
   'hodograph-circle': {
     label: 'Hodograph circle',
-    explainer: 'For inverse-square motion, the velocity tip traces a circle. Its display radius stays stable while its centre-to-origin ratio preserves eccentricity exactly.',
+    explainer: 'The inverse-square changes accumulated over matched time steps make the velocity tip trace a circle. That circle is the proof engine from which the position-space ellipse can be recovered.',
     accent: 'hodograph',
   },
   'hodograph-point': {
-    label: 'Current velocity',
-    explainer: 'The planet’s instantaneous velocity plotted as a point. It is synchronized with the orange planet in position space.',
-    accent: 'hodograph',
+    label: 'Velocity point · same event',
+    explainer: 'The blue point is the orange planet’s instantaneous velocity. They are one orbital event shown twice: once as position and once as velocity.',
+    accent: 'vector',
   },
   'hodograph-center': {
     label: 'Hodograph centre',
-    explainer: 'The centre of the velocity circle. Its displacement from the velocity origin carries the orbit’s eccentricity.',
-    accent: 'vector',
-  },
-  'center-offset': {
-    label: 'Eccentricity offset',
-    explainer: 'In normalized velocity units this magnitude is e / √(1 − e²). The display is rescaled, but offset divided by circle radius remains exactly e.',
+    explainer: 'The circle’s centre is offset from the velocity origin so that offset divided by radius equals e. At e = 0 the centre and origin coincide; increasing eccentricity separates them.',
     accent: 'vector',
   },
   'hodograph-radius': {
     label: 'Hodograph radius',
-    explainer: 'The radius from the circle’s displaced centre to the current velocity point—not the full velocity vector from the origin.',
+    explainer: 'This constant segment runs from the displaced circle centre to the blue velocity point. It is not the full velocity vector, which begins at the velocity-space origin.',
     accent: 'vector',
   },
   'velocity-change-chain': {
-    label: 'Velocity-change chain',
-    explainer: 'Successive velocity differences are chained tip to tail across equal-time samples. As the sampling is refined, the polygon resolves the circular hodograph.',
+    label: 'Inverse-square proof chain',
+    explainer: 'Each segment is the Sun-directed change of velocity over an equal-time step. Chained head to tail, the inverse-square increments reveal the circular hodograph hidden behind the orbit.',
     accent: 'hodograph',
   },
   'velocity-samples': {
     label: 'Equal-time velocity samples',
-    explainer: 'Each marker is the velocity at one equal-time orbital boundary. The highlighted marker corresponds to the active wedge.',
+    explainer: 'Each marker is synchronized with one equal-time event in the position-space wedges. Their ordered differences form the velocity-change chain that reveals the circle.',
     accent: 'hodograph',
   },
   'phase-bridge': {
-    label: 'Same-instant bridge',
-    explainer: 'A correspondence guide between position and velocity space. It marks one shared instant; it is not a force, tether, or physical object.',
+    label: 'Editorial correspondence',
+    explainer: 'This dashed bridge says only that the orange planet and blue velocity point share an instant. It is an editorial guide in this instrument, not a physical tether, force, or path.',
     accent: 'construction',
   },
 };
@@ -152,8 +189,9 @@ export class CanvasTooltipController {
   private readonly objectTargets = new Map<THREE.Object3D, RegisteredTarget>();
   private targets: RegisteredTarget[] = [];
   private active: RegisteredTarget | null = null;
+  private activeAnchor: THREE.Vector3 | null = null;
   private activeMode: OpenMode | null = null;
-  private pendingHover: RegisteredTarget | null = null;
+  private pendingHover: PickedTarget | null = null;
   private showTimer: number | null = null;
   private hideTimer: number | null = null;
   private pointerStart: { pointerId: number; x: number; y: number; moved: boolean } | null = null;
@@ -178,8 +216,10 @@ export class CanvasTooltipController {
     this.tooltip.className = 'scene-tooltip';
     this.tooltip.id = 'scene-tooltip';
     this.tooltip.hidden = true;
-    this.tooltip.setAttribute('role', 'tooltip');
-    this.tooltip.setAttribute('aria-live', 'polite');
+    // Every keyboard hotspot owns its stable accessible name and description.
+    // This floating duplicate is visual only, so focus never announces the
+    // same copy again as a shared tooltip or live region.
+    this.tooltip.setAttribute('aria-hidden', 'true');
 
     const header = document.createElement('div');
     header.className = 'scene-tooltip-header';
@@ -215,15 +255,21 @@ export class CanvasTooltipController {
     this.hide(true);
     this.objectTargets.clear();
     this.hotspotLayer.replaceChildren();
-    this.targets = targets.map(target => {
+    this.targets = targets.map((target, index) => {
       const definition = TOOLTIP_COPY[target.id];
       const hotspot = document.createElement('button');
       hotspot.className = 'scene-tooltip-hotspot';
       hotspot.type = 'button';
-      hotspot.setAttribute('aria-label', `${definition.label}. ${definition.explainer}`);
-      hotspot.setAttribute('aria-describedby', this.tooltip.id);
+      hotspot.setAttribute('aria-label', definition.label);
       hotspot.dataset.tooltipId = target.id;
       hotspot.style.setProperty('--scene-tooltip-accent', this.palette[definition.accent]);
+
+      const description = document.createElement('span');
+      description.className = 'sr-only';
+      description.id = `scene-tooltip-description-${target.id}-${index}`;
+      description.textContent = definition.explainer;
+      hotspot.setAttribute('aria-describedby', description.id);
+      hotspot.append(description);
       this.hotspotLayer.append(hotspot);
 
       const registered: RegisteredTarget = { ...target, definition, hotspot };
@@ -252,7 +298,7 @@ export class CanvasTooltipController {
     });
 
     if (!this.active) return;
-    const screen = this.project(this.active.anchor(), hostRect, canvasRect);
+    const screen = this.project(this.activeAnchor ?? this.active.anchor(), hostRect, canvasRect);
     if (!screen.visible) {
       this.hide();
       return;
@@ -282,11 +328,14 @@ export class CanvasTooltipController {
       }
     }
     if (event.buttons !== 0 || eventIsCoarse(event) || this.activeMode === 'touch') return;
-    const target = this.pick(event.clientX, event.clientY);
-    if (target) {
-      if (this.active === target && this.activeMode === 'hover') return;
+    const picked = this.pick(event.clientX, event.clientY);
+    if (picked) {
+      if (this.active === picked.target && this.activeMode === 'hover') {
+        this.activeAnchor = picked.anchor;
+        return;
+      }
       if (this.activeMode === 'hover') this.hide();
-      this.scheduleHover(target);
+      this.scheduleHover(picked);
     } else {
       this.cancelScheduledShow();
       if (this.activeMode === 'hover') this.hide();
@@ -309,16 +358,16 @@ export class CanvasTooltipController {
     this.pointerStart = null;
     if (!start || start.pointerId !== event.pointerId || start.moved) return;
     if (!eventIsCoarse(event)) return;
-    const target = this.pick(event.clientX, event.clientY);
-    if (!target) {
+    const picked = this.pick(event.clientX, event.clientY);
+    if (!picked) {
       if (this.activeMode === 'touch') this.hide();
       return;
     }
-    if (this.active === target && this.activeMode === 'touch') {
+    if (this.active === picked.target && this.activeMode === 'touch') {
       this.hide();
       return;
     }
-    this.show(target, 'touch');
+    this.show(picked.target, 'touch', picked.anchor);
   };
 
   private readonly pointerCancel = (): void => {
@@ -336,7 +385,7 @@ export class CanvasTooltipController {
     if (event.key === 'Escape') this.hide();
   };
 
-  private pick(clientX: number, clientY: number): RegisteredTarget | null {
+  private pick(clientX: number, clientY: number): PickedTarget | null {
     const rect = this.canvas.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return null;
     this.pointer.set(
@@ -345,19 +394,21 @@ export class CanvasTooltipController {
     );
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const intersections = this.raycaster.intersectObjects(this.targets.flatMap(target => [...target.objects]), true);
-    let best: { target: RegisteredTarget; distance: number } | null = null;
+    const candidates: TooltipHitCandidate<PickedTarget>[] = [];
     for (const intersection of intersections) {
       if (!this.isEffectivelyVisible(intersection.object)) continue;
       const target = this.objectTargets.get(intersection.object);
       if (!target) continue;
-      if (
-        !best
-        || target.priority > best.target.priority
-        || (target.priority === best.target.priority && intersection.distance < best.distance)
-      ) {
-        best = { target, distance: intersection.distance };
-      }
+      candidates.push({
+        target: {
+          target,
+          anchor: target.anchorAtIntersection ? intersection.point.clone() : null,
+        },
+        distance: intersection.distance,
+        priority: target.priority,
+      });
     }
+    const best = selectTooltipCandidate(candidates);
     return best?.target ?? null;
   }
 
@@ -370,7 +421,11 @@ export class CanvasTooltipController {
     return true;
   }
 
-  private show(target: RegisteredTarget, mode: OpenMode): void {
+  private show(
+    target: RegisteredTarget,
+    mode: OpenMode,
+    anchor: THREE.Vector3 | null = null,
+  ): void {
     this.cancelScheduledShow();
     if (this.hideTimer !== null) {
       window.clearTimeout(this.hideTimer);
@@ -378,6 +433,7 @@ export class CanvasTooltipController {
     }
     const changed = this.active !== target;
     this.active = target;
+    this.activeAnchor = anchor;
     this.activeMode = mode;
     if (changed) {
       this.tooltipLabel.textContent = target.definition.label;
@@ -393,6 +449,7 @@ export class CanvasTooltipController {
   private hide(immediate = false): void {
     this.cancelScheduledShow();
     this.active = null;
+    this.activeAnchor = null;
     this.activeMode = null;
     this.tooltip.dataset.open = 'false';
     if (this.hideTimer !== null) window.clearTimeout(this.hideTimer);
@@ -407,14 +464,18 @@ export class CanvasTooltipController {
     }, TRANSITION_MS);
   }
 
-  private scheduleHover(target: RegisteredTarget): void {
-    if (this.pendingHover === target && this.showTimer !== null) return;
+  private scheduleHover(picked: PickedTarget): void {
+    if (this.pendingHover?.target === picked.target && this.showTimer !== null) {
+      this.pendingHover = picked;
+      return;
+    }
     this.cancelScheduledShow();
-    this.pendingHover = target;
+    this.pendingHover = picked;
     this.showTimer = window.setTimeout(() => {
+      const pending = this.pendingHover;
       this.showTimer = null;
       this.pendingHover = null;
-      this.show(target, 'hover');
+      if (pending) this.show(pending.target, 'hover', pending.anchor);
     }, HOVER_DELAY_MS);
   }
 

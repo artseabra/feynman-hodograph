@@ -25,19 +25,22 @@ Local changes do not affect it until an intentional GitHub/Vercel publish.
 
 - Drag to orbit the linked construction.
 - Shift-drag or right-drag to pan.
-- Scroll normally to move through the page. After choosing **Explore** (or
+- Scroll normally to move through the page. After choosing **Enter canvas** (or
   interacting with the construction), plain scroll and pinch dolly the canvas;
   click outside the stage to return scroll to the page.
-- Use the Camera dock for canonical proof, front, literal overhead, and
-  literal side views.
-- **Orbit with Sun**, **Planet**, and **Hodograph** are companion cameras:
-  they pin the selected point beneath the camera while local orbit, pan, and
-  dolly remain available. Any canonical view returns to the free camera.
-- Sound is opt-in and split into three explicit stems: gravity maps 1/r and
-  1/r² to density and brightness, the hodograph maps velocity-vector phase to
-  four stationary resonators, and exact equal-time crossings plus apsides make
-  audible marks. It is interpretive sonification, not an astronomical
-  recording.
+- Use the masthead layout control to move between the **Merged** shared-origin
+  construction and the earlier **Separated** editorial arrangement. The Camera
+  dock retains **Spatial**, **Centered**, literal **Overhead**, and literal
+  **Side** views. Manual camera movement marks the current composition as Custom.
+- **Sun**, **Planet**, and **Velocity** are body-relative cameras. **Free**
+  releases tracking without replacing the current world-camera orientation;
+  any fixed view also releases tracking and refits the active construction
+  layout from a deterministic target.
+- Sound is opt-in and split into three explicit stems: normalized 1/r² raises
+  the intensity and spectral opening of a fixed-pitch Gravity field, the
+  hodograph maps velocity-vector phase to four stationary resonators, and exact
+  equal-time crossings plus apsides make audible marks. It is interpretive
+  sonification, not an astronomical recording.
 
 ## Mathematical and historical note
 
@@ -46,10 +49,13 @@ The position state uses the standard elliptic Kepler parameterization
 state traces a circle after the corresponding scaling and offset. The
 interpretive framing follows David and Judith Goodstein's reconstruction in
 [*Feynman's Lost Lecture: The Motion of Planets Around the Sun*](https://calteches.library.caltech.edu/3822/).
-Their account explains that the 1964 special lecture survived as a tape and
-sparse notes, was omitted from the final 1965 volume, and was later
-reconstructed from the surviving material. The hodograph result itself
-predates Feynman and is associated with Hamilton (1846).
+Their account explains that the 1964 special lecture survived as a tape, sparse
+notes, and one known photograph of the lecture, was omitted from the final 1965
+volume, and was later reconstructed from those fragments and historical source
+pages. The local review build includes the exact eight-page Goodstein PDF and
+clearly labels its historical artifacts separately from this contemporary 3D
+translation. The hodograph result itself predates Feynman and is associated
+with Hamilton (1846).
 
 ## Narration
 

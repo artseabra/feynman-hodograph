@@ -1,5 +1,6 @@
 import { normalizeAngle, TAU, type ApsisCrossing, type WedgeCrossing } from '../model/orbit';
 import type { OrbitalState } from '../types';
+import { gravityFieldFrame } from './gravityVoice';
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
@@ -70,10 +71,7 @@ export interface GravityFrame {
  */
 export function gravityFrame(state: OrbitalState): GravityFrame {
   const measures = orbitalMeasures(state);
-  return {
-    gain: 0.18 + measures.gravitationalFieldNormalized * 0.82,
-    brightness: 0.16 + measures.gravitationalFieldNormalized * 0.84,
-  };
+  return gravityFieldFrame(measures.gravitationalFieldNormalized);
 }
 
 export interface HodographFrame {

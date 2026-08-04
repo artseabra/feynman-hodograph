@@ -1,7 +1,7 @@
 import type { EqualTimeSample, OrbitalState, Point2 } from '../types';
 
 export const TAU = Math.PI * 2;
-export const MAX_ECCENTRICITY = 0.85;
+export const MAX_ECCENTRICITY = 0.92;
 
 export interface WedgeCrossing {
   /** The shared orbital/hodograph wedge index, wrapped to [0, N). */
@@ -100,20 +100,27 @@ export function hodographDistanceFromCircle(state: OrbitalState): number {
 export function crossedWedgeEvents(previousMeanAnomaly: number, nextMeanAnomaly: number, wedges: number): WedgeCrossing[] {
   const count = Math.max(3, Math.round(wedges));
   if (!Number.isFinite(previousMeanAnomaly) || !Number.isFinite(nextMeanAnomaly)) return [];
-  if (nextMeanAnomaly <= previousMeanAnomaly) return [];
+  if (nextMeanAnomaly === previousMeanAnomaly) return [];
 
   const step = TAU / count;
-  const first = Math.floor(previousMeanAnomaly / step) + 1;
-  const last = Math.floor(nextMeanAnomaly / step);
   const crossings: WedgeCrossing[] = [];
-
-  for (let boundary = first; boundary <= last; boundary += 1) {
+  const append = (boundary: number) => {
     crossings.push({
       index: ((boundary % count) + count) % count,
       wedgeCount: count,
       cycle: Math.floor(boundary / count),
       meanAnomaly: boundary * step,
     });
+  };
+
+  if (nextMeanAnomaly > previousMeanAnomaly) {
+    const first = Math.floor(previousMeanAnomaly / step) + 1;
+    const last = Math.floor(nextMeanAnomaly / step);
+    for (let boundary = first; boundary <= last; boundary += 1) append(boundary);
+  } else {
+    const first = Math.ceil(previousMeanAnomaly / step) - 1;
+    const last = Math.ceil(nextMeanAnomaly / step);
+    for (let boundary = first; boundary >= last; boundary -= 1) append(boundary);
   }
 
   return crossings;
@@ -125,18 +132,30 @@ export function crossedWedgeIndices(previousMeanAnomaly: number, nextMeanAnomaly
 
 export function crossedApsisEvents(previousMeanAnomaly: number, nextMeanAnomaly: number): ApsisCrossing[] {
   if (!Number.isFinite(previousMeanAnomaly) || !Number.isFinite(nextMeanAnomaly)) return [];
-  if (nextMeanAnomaly <= previousMeanAnomaly) return [];
+  if (nextMeanAnomaly === previousMeanAnomaly) return [];
 
   const crossings: ApsisCrossing[] = [];
   const include = (phase: number, kind: ApsisCrossing['kind']) => {
-    const first = Math.floor((previousMeanAnomaly - phase) / TAU) + 1;
-    const last = Math.floor((nextMeanAnomaly - phase) / TAU);
-    for (let cycle = first; cycle <= last; cycle += 1) {
-      crossings.push({ kind, cycle, meanAnomaly: phase + cycle * TAU });
+    if (nextMeanAnomaly > previousMeanAnomaly) {
+      const first = Math.floor((previousMeanAnomaly - phase) / TAU) + 1;
+      const last = Math.floor((nextMeanAnomaly - phase) / TAU);
+      for (let cycle = first; cycle <= last; cycle += 1) {
+        crossings.push({ kind, cycle, meanAnomaly: phase + cycle * TAU });
+      }
+    } else {
+      const first = Math.ceil((previousMeanAnomaly - phase) / TAU) - 1;
+      const last = Math.ceil((nextMeanAnomaly - phase) / TAU);
+      for (let cycle = first; cycle >= last; cycle -= 1) {
+        crossings.push({ kind, cycle, meanAnomaly: phase + cycle * TAU });
+      }
     }
   };
 
   include(0, 'perihelion');
   include(Math.PI, 'aphelion');
-  return crossings.sort((first, second) => first.meanAnomaly - second.meanAnomaly);
+  return crossings.sort((first, second) => (
+    nextMeanAnomaly > previousMeanAnomaly
+      ? first.meanAnomaly - second.meanAnomaly
+      : second.meanAnomaly - first.meanAnomaly
+  ));
 }

@@ -1,28 +1,22 @@
 type InterfaceTooltipId =
-  | 'theme'
-  | 'narration-nav'
   | 'playback-toggle'
   | 'restart'
   | 'time-scale'
   | 'eccentricity'
   | 'wedge-count'
-  | 'camera-proof'
-  | 'camera-front'
+  | 'camera-spatial'
+  | 'camera-centered'
   | 'camera-overhead'
   | 'camera-side'
-  | 'camera-frame-all'
   | 'camera-sun'
   | 'camera-planet'
   | 'camera-hodograph'
   | 'camera-free'
+  | 'construction-layout'
   | 'sound-toggle'
-  | 'sound-master'
   | 'sound-gravity'
   | 'sound-hodograph'
-  | 'sound-markers'
-  | 'story-link'
-  | 'narration-play'
-  | 'narration-seek';
+  | 'sound-markers';
 
 interface TooltipDefinition {
   label: string;
@@ -36,125 +30,95 @@ const HOVER_DELAY_MS = 600;
 const TRANSITION_MS = 200;
 
 const TOOLTIP_COPY: Record<InterfaceTooltipId, TooltipDefinition> = {
-  theme: {
-    label: 'Surface',
-    explainer: 'Switch between warm paper and dark chalkboard. Your choice remains local to this browser.',
-    accent: 'var(--construction)',
-  },
-  'narration-nav': {
-    label: 'Lost-lecture narration',
-    explainer: 'Play or pause the recovered story. Starting it here carries you directly to the narration below.',
-    accent: 'var(--hodograph)',
-  },
   'playback-toggle': {
     label: 'Shared clock',
-    explainer: 'Pause or resume uniform mean-anomaly time. Both mathematical spaces always remain synchronized.',
+    explainer: 'One uniform mean-anomaly clock indexes both drawings. At every pause, the orange planet and blue velocity point remain one event represented twice.',
     accent: 'var(--construction)',
   },
   restart: {
-    label: 'Restart orbit',
-    explainer: 'Return mean anomaly to zero: perihelion in position space and its matching point on the hodograph.',
+    label: 'Perihelion anchor',
+    explainer: 'Mean anomaly zero places the planet at perihelion and identifies the corresponding point on the displaced velocity circle.',
     accent: 'var(--orbit)',
   },
   'time-scale': {
-    label: 'Time scale',
-    explainer: 'Changes how quickly mean anomaly advances without altering the orbit’s geometry or synchronization.',
+    label: 'Signed orbital clock',
+    explainer: 'Mean anomaly is not confined to one direction or revolution. Negative rates retrace the same proof backward, zero holds one shared event exactly, and positive rates carry it forward.',
     accent: 'var(--construction)',
   },
   eccentricity: {
     label: 'Eccentricity · e',
-    explainer: 'Controls how elongated the ellipse is. The same value displaces the hodograph centre in velocity space.',
+    explainer: 'The same number that elongates the position ellipse appears as offset ÷ radius in the hodograph circle. Two geometries carry one invariant.',
     accent: 'var(--orbit)',
   },
   'wedge-count': {
-    label: 'Equal-time resolution',
-    explainer: 'Sets how many equal intervals sample one orbit. More wedges refine both swept areas and the velocity-change chain.',
+    label: 'Proof resolution',
+    explainer: 'Equal-time wedges discretize the orbit and its velocity changes together. Refining the partition makes the circular hodograph emerge from the chain.',
     accent: 'var(--wedge)',
   },
-  'camera-proof': {
-    label: 'Proof view',
-    explainer: 'The composed teaching angle: position and velocity planes remain legible together as one construction.',
+  'camera-spatial': {
+    label: 'Spatial view',
+    explainer: 'An oblique reading keeps both perpendicular planes visibly three-dimensional while the same-instant correspondence remains legible in either staging.',
     accent: 'var(--construction)',
   },
-  'camera-front': {
-    label: 'Front view',
-    explainer: 'Looks nearly level through the construction to compare the two embedded spaces without an oblique orbit.',
+  'camera-centered': {
+    label: 'Centered view',
+    explainer: 'The hodograph reads face-on while the orbit intersects it as a horizontal construction, making the decisive translation into velocity space explicit.',
     accent: 'var(--construction)',
   },
   'camera-overhead': {
-    label: 'True overhead',
-    explainer: 'Looks exactly normal to the orbital plane, showing the ellipse without perspective distortion.',
+    label: 'Overhead · position proof',
+    explainer: 'Normal to the orbital plane, the ellipse, focus, and equal-area clock become the dominant relation.',
     accent: 'var(--orbit)',
   },
   'camera-side': {
-    label: 'True side',
-    explainer: 'Looks exactly along the world X axis, making the right-angle relationship between the two planes explicit.',
+    label: 'Side · authored orthogonality',
+    explainer: 'Along the world X axis, the right angle is exposed as this instrument’s spatial translation of two mathematical spaces—not Feynman’s original staging.',
     accent: 'var(--hodograph)',
   },
-  'camera-frame-all': {
-    label: 'Frame all',
-    explainer: 'Releases any body lock and fits every visible construction inside a neutral overview.',
-    accent: 'var(--construction)',
-  },
   'camera-sun': {
-    label: 'From Sun',
-    explainer: 'Places the eye on the Sun’s surface. The planet begins centred; your first drag takes over free looking.',
+    label: 'From the force centre',
+    explainer: 'The vantage begins at the focus toward which every inverse-square acceleration points, foregrounding the central-force premise of the argument.',
     accent: 'var(--sun)',
   },
   'camera-planet': {
-    label: 'Orbit with planet',
-    explainer: 'Pins the camera target to the moving planet while leaving orbit, pan, and dolly under your control.',
+    label: 'Travel with position',
+    explainer: 'The frame accompanies the orange planet: one moving event read through its position-space trace.',
     accent: 'var(--orbit)',
   },
   'camera-hodograph': {
-    label: 'Orbit with velocity',
-    explainer: 'Pins the camera target to the moving hodograph point so velocity space travels with you.',
+    label: 'Travel with velocity',
+    explainer: 'The frame accompanies the blue velocity point: the same moving event translated into the space where the proof closes as a circle.',
     accent: 'var(--hodograph)',
   },
   'camera-free': {
-    label: 'Free camera',
-    explainer: 'Releases every moving-body attachment and returns camera motion to the shared scene centre.',
+    label: 'Unprivileged world frame',
+    explainer: 'No moving body owns the vantage. The current world-camera relation remains as the two synchronized representations continue through it.',
     accent: 'var(--vector)',
   },
-  'sound-toggle': {
-    label: 'Sonification power',
-    explainer: 'Enable, mute, or restore the browser-native orbital score. Sound begins only after this explicit action.',
-    accent: 'var(--hodograph)',
-  },
-  'sound-master': {
-    label: 'Master level',
-    explainer: 'Controls the complete orbital score after all three layers meet the safety compressor.',
+  'construction-layout': {
+    label: 'One proof · two stagings',
+    explainer: 'Merged lets the position and velocity constructions share one world origin. Separated restores the earlier editorial staging; the orange planet and blue velocity point remain the same instant.',
     accent: 'var(--construction)',
+  },
+  'sound-toggle': {
+    label: 'Interpretive sonification',
+    explainer: 'A contemporary mapping of mathematical relationships into sound—neither planetary audio nor the surviving recording of Feynman’s lecture.',
+    accent: 'var(--hodograph)',
   },
   'sound-gravity': {
     label: 'Gravity field',
-    explainer: 'A fixed low harmonic bed. The inverse-square field raises its level and opens its spectrum near perihelion; its pitch never imitates an engine.',
+    explainer: 'Normalized 1/r² raises intensity and opens a dark fixed 98/147/196 Hz spectrum toward perihelion. Pitch never tracks orbital speed: this is interpretation, not planetary sound.',
     accent: 'var(--sun)',
   },
   'sound-hodograph': {
     label: 'Hodograph field',
-    explainer: 'Four stationary resonators crossfade with the velocity point’s angle around the circle. Speed changes brightness, not RPM.',
+    explainer: 'The velocity point’s direction around the circle becomes a timbral path through four stationary resonators. Brightness varies without an engine-speed metaphor.',
     accent: 'var(--hodograph)',
   },
   'sound-markers': {
-    label: 'Boundary pulses',
-    explainer: 'Each exact equal-time crossing makes one short, dry pulse. Two damped inharmonic modes change continuously around the hodograph; perihelion and aphelion remain separate landmarks.',
+    label: 'Equal-time boundaries',
+    explainer: 'The same equal-time clock indexes position wedges and velocity samples. Each crossing receives a dry pulse; perihelion and aphelion remain distinct landmarks.',
     accent: 'var(--wedge)',
-  },
-  'story-link': {
-    label: 'Continue to the lost lecture',
-    explainer: 'Move from the live construction to the recovered story, narration, historical sequence, and sources.',
-    accent: 'var(--hodograph)',
-  },
-  'narration-play': {
-    label: 'Narration transport',
-    explainer: 'Play or pause Alistair’s reading of the recovered lecture story.',
-    accent: 'var(--hodograph)',
-  },
-  'narration-seek': {
-    label: 'Narration position',
-    explainer: 'Move to any moment in the four-minute narration without changing the orbital instrument’s clock.',
-    accent: 'var(--hodograph)',
   },
 };
 

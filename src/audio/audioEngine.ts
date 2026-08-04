@@ -1,5 +1,14 @@
 import { type ApsisCrossing, type WedgeCrossing } from '../model/orbit';
 import type { AudioMix, OrbitalState } from '../types';
+import {
+  GRAVITY_DRY_LEVEL,
+  GRAVITY_HIGH_PASS_HZ,
+  GRAVITY_SATURATED_LEVEL,
+  GRAVITY_VOICE_BLUEPRINTS,
+  gravityPeriodicWaveCoefficients,
+  gravitySaturationCurve,
+  type GravityVoiceBlueprint,
+} from './gravityVoice';
 import { apsisTuning, boundaryPulse, gravityFrame, hodographFrame } from './sonification';
 
 interface ContinuousVoice {
@@ -129,9 +138,8 @@ export class AudioEngine {
     const gravity = gravityFrame(state);
     const hodograph = hodographFrame(state);
 
-    this.gravityVoices.forEach((voice, index) => {
-      const harmonicWeight = [1, 0.66, 0.42][index] ?? 0.25;
-      setTarget(voice.gain.gain, activity * voice.baseLevel * harmonicWeight * gravity.gain, time, 0.16);
+    this.gravityVoices.forEach(voice => {
+      setTarget(voice.gain.gain, activity * voice.baseLevel * gravity.gain, time, 0.16);
     });
     setTarget(this.gravityFilter.frequency, 420 + gravity.brightness * 2_500, time, 0.18);
     setTarget(this.gravityFilter.Q, 0.48 + gravity.brightness * 0.34, time, 0.18);
@@ -288,6 +296,10 @@ export class AudioEngine {
     const master = context.createGain();
     const compressor = context.createDynamicsCompressor();
     const gravity = context.createGain();
+    const gravityHighPass = context.createBiquadFilter();
+    const gravityDry = context.createGain();
+    const gravitySaturator = context.createWaveShaper();
+    const gravitySaturated = context.createGain();
     const gravityFilter = context.createBiquadFilter();
     const hodograph = context.createGain();
     const hodographFilter = context.createBiquadFilter();
@@ -301,6 +313,13 @@ export class AudioEngine {
     compressor.attack.setValueAtTime(0.004, context.currentTime);
     compressor.release.setValueAtTime(0.2, context.currentTime);
     master.gain.setValueAtTime(0, context.currentTime);
+    gravityHighPass.type = 'highpass';
+    gravityHighPass.frequency.setValueAtTime(GRAVITY_HIGH_PASS_HZ, context.currentTime);
+    gravityHighPass.Q.setValueAtTime(0.707, context.currentTime);
+    gravityDry.gain.setValueAtTime(GRAVITY_DRY_LEVEL, context.currentTime);
+    gravitySaturator.curve = gravitySaturationCurve();
+    gravitySaturator.oversample = '2x';
+    gravitySaturated.gain.setValueAtTime(GRAVITY_SATURATED_LEVEL, context.currentTime);
     gravityFilter.type = 'lowpass';
     gravityFilter.frequency.setValueAtTime(1_100, context.currentTime);
     gravityFilter.Q.setValueAtTime(0.62, context.currentTime);
@@ -310,7 +329,12 @@ export class AudioEngine {
     markerReverb.buffer = impulseResponse(context);
     markerReverbWet.gain.setValueAtTime(0.075, context.currentTime);
 
-    gravity.connect(gravityFilter);
+    gravity.connect(gravityHighPass);
+    gravityHighPass.connect(gravityDry);
+    gravityHighPass.connect(gravitySaturator);
+    gravityDry.connect(gravityFilter);
+    gravitySaturator.connect(gravitySaturated);
+    gravitySaturated.connect(gravityFilter);
     gravityFilter.connect(compressor);
     hodograph.connect(hodographFilter);
     hodographFilter.connect(compressor);
@@ -328,11 +352,13 @@ export class AudioEngine {
     this.markers = markers;
     this.gravityFilter = gravityFilter;
     this.hodographFilter = hodographFilter;
-    this.gravityVoices = this.makeContinuousVoices(context, gravity, [
-      { frequency: 98, level: 0.34, type: 'sine' },
-      { frequency: 147, level: 0.24, type: 'sine' },
-      { frequency: 196, level: 0.16, type: 'triangle' },
-    ]);
+    const gravityCoefficients = gravityPeriodicWaveCoefficients();
+    const gravityWave = context.createPeriodicWave(
+      gravityCoefficients.real,
+      gravityCoefficients.imaginary,
+      { disableNormalization: false },
+    );
+    this.gravityVoices = this.makeGravityVoices(context, gravity, gravityWave, GRAVITY_VOICE_BLUEPRINTS);
     this.hodographVoices = this.makeContinuousVoices(context, hodograph, [
       { frequency: 220, level: 0.25, type: 'triangle' },
       { frequency: 277.1826, level: 0.22, type: 'sine' },
@@ -354,6 +380,28 @@ export class AudioEngine {
       gain.gain.setValueAtTime(0.0001, context.currentTime);
       oscillator.connect(gain);
       gain.connect(destination);
+      oscillator.start();
+      return { oscillator, gain, baseLevel: blueprint.level };
+    });
+  }
+
+  private makeGravityVoices(
+    context: AudioContext,
+    destination: AudioNode,
+    periodicWave: PeriodicWave,
+    blueprints: readonly GravityVoiceBlueprint[],
+  ): ContinuousVoice[] {
+    return blueprints.map(blueprint => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      const panner = context.createStereoPanner();
+      oscillator.setPeriodicWave(periodicWave);
+      oscillator.frequency.value = blueprint.frequency;
+      panner.pan.value = blueprint.pan;
+      gain.gain.setValueAtTime(0.0001, context.currentTime);
+      oscillator.connect(gain);
+      gain.connect(panner);
+      panner.connect(destination);
       oscillator.start();
       return { oscillator, gain, baseLevel: blueprint.level };
     });

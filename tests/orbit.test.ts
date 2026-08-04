@@ -91,6 +91,16 @@ describe('wedge scheduler', () => {
     expect(crossedWedgeIndices(TAU + 0.04, TAU + 0.01, 16)).toEqual([]);
   });
 
+  it('emits reversed boundaries in descending time order without constraining the clock', () => {
+    expect(crossedWedgeIndices(TAU * 3 / 16, 0, 16)).toEqual([2, 1, 0]);
+    expect(crossedWedgeEvents(0.04, -0.04, 16)).toEqual([
+      { index: 0, wedgeCount: 16, cycle: 0, meanAnomaly: 0 },
+    ]);
+    expect(crossedWedgeEvents(-TAU + 0.04, -TAU - 0.04, 16)).toEqual([
+      { index: 0, wedgeCount: 16, cycle: -1, meanAnomaly: -TAU },
+    ]);
+  });
+
   it('adds the two apsides once per orbital revolution', () => {
     expect(crossedApsisEvents(0, Math.PI)).toEqual([
       { kind: 'aphelion', cycle: 0, meanAnomaly: Math.PI },
@@ -99,5 +109,15 @@ describe('wedge scheduler', () => {
       { kind: 'perihelion', cycle: 1, meanAnomaly: TAU },
     ]);
     expect(crossedApsisEvents(TAU, TAU)).toEqual([]);
+  });
+
+  it('schedules apsides in reverse when the signed clock runs backward', () => {
+    expect(crossedApsisEvents(TAU, 0)).toEqual([
+      { kind: 'aphelion', cycle: 0, meanAnomaly: Math.PI },
+      { kind: 'perihelion', cycle: 0, meanAnomaly: 0 },
+    ]);
+    expect(crossedApsisEvents(0.04, -0.04)).toEqual([
+      { kind: 'perihelion', cycle: 0, meanAnomaly: 0 },
+    ]);
   });
 });

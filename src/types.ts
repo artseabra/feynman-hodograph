@@ -1,7 +1,8 @@
 export type ThemeName = 'light' | 'chalkboard';
 
-export type CameraView = 'proof' | 'front' | 'overhead' | 'side';
+export type CameraView = 'spatial' | 'centered' | 'overhead' | 'side';
 export type CameraFocus = 'free' | 'sun' | 'planet' | 'hodograph';
+export type ConstructionLayout = 'merged' | 'separated';
 
 export interface Point2 {
   x: number;
@@ -54,7 +55,9 @@ export interface InstrumentState {
   playing: boolean;
   theme: ThemeName;
   activeDock: 'playback' | 'geometry' | 'camera' | 'sound' | null;
+  cameraView: CameraView | 'custom';
   cameraFocus: CameraFocus;
+  constructionLayout: ConstructionLayout;
   audio: AudioMix;
 }
 

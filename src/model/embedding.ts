@@ -1,13 +1,20 @@
-import type { OrbitalState, Point2, Point3 } from '../types';
+import type { ConstructionLayout, OrbitalState, Point2, Point3 } from '../types';
 import { hodographCircle, normalizeAngle, TAU } from './orbit';
+
+export type { ConstructionLayout } from '../types';
 
 // Position space and velocity space are different vector spaces. This is a
 // deliberate spatial embedding: the orbital construction lies horizontally,
 // while the hodograph stands in a vertical plane. Their shared phase is drawn
 // as a correspondence bridge rather than faking a single flat dashboard.
 const WORLD_ORIGIN: Point3 = { x: 0, y: 0, z: 0 };
-const ORBIT_ORIGIN: Point3 = WORLD_ORIGIN;
-const HODOGRAPH_ORIGIN: Point3 = WORLD_ORIGIN;
+const MERGED_ORBIT_ORIGIN: Point3 = WORLD_ORIGIN;
+const MERGED_HODOGRAPH_ORIGIN: Point3 = WORLD_ORIGIN;
+// These are the authored positions from the last separated composition before
+// the shared-origin restoration (b855f19). In this mode the local vectors are
+// intentionally left focus/origin-relative, exactly as they were there.
+const SEPARATED_ORBIT_ORIGIN: Point3 = { x: -1.85, y: -0.58, z: 0.98 };
+const SEPARATED_HODOGRAPH_ORIGIN: Point3 = { x: 1.85, y: 0.18, z: -1.32 };
 const ORBIT_SCALE = 2.2;
 const HODOGRAPH_DISPLAY_RADIUS = 1.45;
 // The grid is a construction field, not a second scene. Keep it close to the
@@ -22,8 +29,10 @@ const ORBIT_GRID_MARGIN = 0.36;
 const HODOGRAPH_GRID_MARGIN = 0.42;
 
 export const sceneLayout = {
-  orbitOrigin: ORBIT_ORIGIN,
-  hodographOrigin: HODOGRAPH_ORIGIN,
+  orbitOrigin: MERGED_ORBIT_ORIGIN,
+  hodographOrigin: MERGED_HODOGRAPH_ORIGIN,
+  separatedOrbitOrigin: SEPARATED_ORBIT_ORIGIN,
+  separatedHodographOrigin: SEPARATED_HODOGRAPH_ORIGIN,
   orbitScale: ORBIT_SCALE,
   hodographDisplayRadius: HODOGRAPH_DISPLAY_RADIUS,
   orbitGridExtent: ORBIT_GRID_EXTENT,
@@ -54,13 +63,25 @@ export function hodographGridFrame(eccentricity: number): GridFrame {
   };
 }
 
-export function orbitWorld(point: Point2, eccentricity: number, elevation = 0): Point3 {
+export function orbitWorld(
+  point: Point2,
+  eccentricity: number,
+  elevation = 0,
+  layout: ConstructionLayout = 'merged',
+): Point3 {
+  if (layout === 'separated') {
+    return {
+      x: SEPARATED_ORBIT_ORIGIN.x + point.x * ORBIT_SCALE,
+      y: SEPARATED_ORBIT_ORIGIN.y + elevation,
+      z: SEPARATED_ORBIT_ORIGIN.z + point.y * ORBIT_SCALE,
+    };
+  }
   return {
     // orbitalState is focus-relative; +e places the ellipse's geometric
     // centre at Blender-style world zero while the Sun remains at its focus.
-    x: ORBIT_ORIGIN.x + (point.x + eccentricity) * ORBIT_SCALE,
-    y: ORBIT_ORIGIN.y + elevation,
-    z: ORBIT_ORIGIN.z + point.y * ORBIT_SCALE,
+    x: MERGED_ORBIT_ORIGIN.x + (point.x + eccentricity) * ORBIT_SCALE,
+    y: MERGED_ORBIT_ORIGIN.y + elevation,
+    z: MERGED_ORBIT_ORIGIN.z + point.y * ORBIT_SCALE,
   };
 }
 
@@ -73,15 +94,27 @@ export function hodographDisplayScale(eccentricity: number): number {
   return HODOGRAPH_DISPLAY_RADIUS / hodographCircle(eccentricity).radius;
 }
 
-export function hodographWorld(point: Point2, eccentricity: number, depth = 0): Point3 {
+export function hodographWorld(
+  point: Point2,
+  eccentricity: number,
+  depth = 0,
+  layout: ConstructionLayout = 'merged',
+): Point3 {
   const scale = hodographDisplayScale(eccentricity);
+  if (layout === 'separated') {
+    return {
+      x: SEPARATED_HODOGRAPH_ORIGIN.x + point.x * scale,
+      y: SEPARATED_HODOGRAPH_ORIGIN.y + point.y * scale,
+      z: SEPARATED_HODOGRAPH_ORIGIN.z + depth,
+    };
+  }
   const circle = hodographCircle(eccentricity);
   return {
-    x: HODOGRAPH_ORIGIN.x + (point.x - circle.center.x) * scale,
+    x: MERGED_HODOGRAPH_ORIGIN.x + (point.x - circle.center.x) * scale,
     // Centre the circle itself at world zero. The velocity origin remains
     // displaced downward, so offset / radius = e stays visually explicit.
-    y: HODOGRAPH_ORIGIN.y + (point.y - circle.center.y) * scale,
-    z: HODOGRAPH_ORIGIN.z + depth,
+    y: MERGED_HODOGRAPH_ORIGIN.y + (point.y - circle.center.y) * scale,
+    z: MERGED_HODOGRAPH_ORIGIN.z + depth,
   };
 }
 
@@ -90,9 +123,12 @@ export function activeWedgeIndex(meanAnomaly: number, wedges: number): number {
   return Math.min(count - 1, Math.floor(normalizeAngle(meanAnomaly) / TAU * count));
 }
 
-export function correspondenceBridge(state: OrbitalState): Point3[] {
-  const orbit = orbitWorld(state.position, state.eccentricity, 0.16);
-  const hodograph = hodographWorld(state.velocity, state.eccentricity, 0.16);
+export function correspondenceBridge(
+  state: OrbitalState,
+  layout: ConstructionLayout = 'merged',
+): Point3[] {
+  const orbit = orbitWorld(state.position, state.eccentricity, 0.16, layout);
+  const hodograph = hodographWorld(state.velocity, state.eccentricity, 0.16, layout);
   const lift = Math.max(orbit.y, hodograph.y) + 0.72;
   const firstBend: Point3 = {
     x: orbit.x + (hodograph.x - orbit.x) * 0.3,

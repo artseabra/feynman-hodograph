@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { CameraView, SceneBounds } from '../types';
+import type { CameraView, Point3, SceneBounds } from '../types';
 
 const INTENT_DELAY_MS = 90;
 const INTENT_DISTANCE_PX = 4;
@@ -25,15 +25,13 @@ export function shouldDollyFromWheel(exploring: boolean): boolean {
 
 // Each preset answers a different question about the construction. Overhead
 // is genuinely normal to the orbital plane; side is genuinely normal to the
-// world X axis. The oblique proof and overview are deliberately separate.
+// world X axis. Spatial and centered retain the two proven oblique framings.
 const CAMERA_PRESETS: Record<CameraView, { yaw: number; pitch: number }> = {
-  proof: { yaw: -0.58, pitch: 0.34 },
-  front: { yaw: 0.02, pitch: 0.06 },
+  spatial: { yaw: -0.58, pitch: 0.34 },
+  centered: { yaw: 0.02, pitch: 0.06 },
   overhead: { yaw: 0, pitch: HALF_PI },
   side: { yaw: HALF_PI, pitch: 0 },
 };
-
-const OVERVIEW_PRESET = { yaw: 0.72, pitch: 0.54 };
 
 export function cameraPresetOrientation(view: CameraView): { yaw: number; pitch: number } {
   return { ...CAMERA_PRESETS[view] };
@@ -46,45 +44,49 @@ export class CameraRig {
   private readonly pointOfViewEyeDirection = new THREE.Vector3(0, 0, 1);
   private followMode: 'none' | 'target' | 'point-of-view' = 'none';
   private pointOfViewTracksSubject = false;
-  private yaw = CAMERA_PRESETS.proof.yaw;
-  private yawGoal = CAMERA_PRESETS.proof.yaw;
-  private pitch = CAMERA_PRESETS.proof.pitch;
-  private pitchGoal = CAMERA_PRESETS.proof.pitch;
+  private yaw = CAMERA_PRESETS.spatial.yaw;
+  private yawGoal = CAMERA_PRESETS.spatial.yaw;
+  private pitch = CAMERA_PRESETS.spatial.pitch;
+  private pitchGoal = CAMERA_PRESETS.spatial.pitch;
   private distance = 15;
   private distanceGoal = 15;
   private minimumDistance = 3;
   private maximumDistance = 40;
 
-  fit(bounds: SceneBounds, camera: THREE.PerspectiveCamera, aspect: number): void {
-    if (this.followMode === 'point-of-view') {
-      this.minimumDistance = POV_MIN_DISTANCE;
-      this.maximumDistance = POV_MAX_DISTANCE;
-      return;
-    }
+  setView(
+    view: CameraView,
+    bounds: SceneBounds,
+    camera: THREE.PerspectiveCamera,
+    aspect: number,
+    targetPoint: Point3 = { x: 0, y: 0, z: 0 },
+  ): void {
+    this.releaseFollow();
     if (camera.fov !== BASE_FOV) {
       camera.fov = BASE_FOV;
       camera.updateProjectionMatrix();
     }
     const fovRadians = THREE.MathUtils.degToRad(camera.fov);
-    const horizontalFov = 2 * Math.atan(Math.tan(fovRadians / 2) * aspect);
-    const { forward, right, up } = this.basisAt(this.yawGoal, this.pitchGoal);
+    const horizontalFov = 2 * Math.atan(Math.tan(fovRadians / 2) * Math.max(aspect, 0.001));
+    const orientation = CAMERA_PRESETS[view];
+    const { forward, right, up } = this.basisAt(orientation.yaw, orientation.pitch);
+    const viewTarget = new THREE.Vector3(targetPoint.x, targetPoint.y, targetPoint.z);
     const horizontalTangent = Math.tan(horizontalFov / 2);
     const verticalTangent = Math.tan(fovRadians / 2);
-    const center = new THREE.Vector3(bounds.center.x, bounds.center.y, bounds.center.z);
     const corners = [bounds.min.x, bounds.max.x].flatMap(x =>
       [bounds.min.y, bounds.max.y].flatMap(y =>
-        [bounds.min.z, bounds.max.z].map(z => new THREE.Vector3(x, y, z).sub(center)),
+        [bounds.min.z, bounds.max.z].map(z => new THREE.Vector3(x, y, z)),
       ),
     );
 
     // A bounding sphere is safe but visually wasteful for two perpendicular
     // planes. Solve against the projected AABB corners at the active view
-    // instead: every construction remains in frame while the proof occupies
+    // instead: every construction remains in frame while the geometry occupies
     // the stage as a spatial instrument rather than a tiny tabletop diorama.
     const requiredDistance = corners.reduce((distance, corner) => {
-      const depthOffset = corner.dot(forward);
-      const horizontal = Math.abs(corner.dot(right)) / horizontalTangent - depthOffset;
-      const vertical = Math.abs(corner.dot(up)) / verticalTangent - depthOffset;
+      const relativeCorner = corner.sub(viewTarget);
+      const depthOffset = relativeCorner.dot(forward);
+      const horizontal = Math.abs(relativeCorner.dot(right)) / horizontalTangent - depthOffset;
+      const vertical = Math.abs(relativeCorner.dot(up)) / verticalTangent - depthOffset;
       return Math.max(distance, horizontal, vertical, 0.3 - depthOffset);
     }, 0.1);
     // Projected bounds have already accounted for the active camera basis.
@@ -94,17 +96,23 @@ export class CameraRig {
 
     this.minimumDistance = Math.max(0.55, requiredDistance * 0.14);
     this.maximumDistance = Math.max(distance * 6, bounds.radius * 8);
-    if (this.followMode === 'none') {
-      this.targetGoal.set(bounds.center.x, bounds.center.y, bounds.center.z);
-      this.distanceGoal = THREE.MathUtils.clamp(distance, this.minimumDistance, this.maximumDistance);
-    }
+    const fittedDistance = THREE.MathUtils.clamp(distance, this.minimumDistance, this.maximumDistance);
+
+    // A preset is a complete camera snapshot, not an orientation hint. Reset
+    // both sides of every damped degree of freedom so prior body tracking,
+    // hand panning, orbiting, or dolly cannot leak into the selected view.
+    this.target.copy(viewTarget);
+    this.targetGoal.copy(viewTarget);
+    this.distance = fittedDistance;
+    this.distanceGoal = fittedDistance;
+    this.setOrientation(orientation, true);
   }
 
   orbit(deltaX: number, deltaY: number): void {
     if (this.followMode === 'point-of-view') {
       // The initial Sun view keeps the planet centred. The first deliberate
       // look gesture hands orientation to the visitor and stops auto-tracking
-      // until From Sun is selected again.
+      // while this body-relative view remains active.
       this.pointOfViewTracksSubject = false;
       // Orbit mode moves a camera around a target; point-of-view mode turns
       // the eye itself. Horizontal direct-look follows screen space: pull
@@ -139,14 +147,22 @@ export class CameraRig {
     );
   }
 
-  setView(view: CameraView): void {
-    this.releaseFollow();
-    this.setOrientation(CAMERA_PRESETS[view], true);
+  getFraming(): number {
+    const minimum = Math.max(this.minimumDistance, 1e-6);
+    const maximum = Math.max(this.maximumDistance, minimum + 1e-6);
+    return THREE.MathUtils.clamp(
+      Math.log(this.distanceGoal / minimum) / Math.log(maximum / minimum),
+      0,
+      1,
+    );
   }
 
-  frameAll(): void {
-    this.releaseFollow();
-    this.setOrientation(OVERVIEW_PRESET, true);
+  setFraming(value: number): number {
+    const framing = THREE.MathUtils.clamp(value, 0, 1);
+    const minimum = Math.max(this.minimumDistance, 1e-6);
+    const maximum = Math.max(this.maximumDistance, minimum + 1e-6);
+    this.distanceGoal = minimum * Math.pow(maximum / minimum, framing);
+    return this.getFraming();
   }
 
   beginFollow(
@@ -171,6 +187,16 @@ export class CameraRig {
   }
 
   releaseFollow(): void {
+    if (this.followMode === 'point-of-view') {
+      // Point-of-view yaw/pitch describe the direction the eye looks. Orbit
+      // yaw/pitch describe the offset from target to camera, whose look
+      // direction is the inverse. Convert both damped endpoints so Free keeps
+      // the visitor's current bearing instead of snapping 180 degrees around.
+      this.yaw += Math.PI;
+      this.yawGoal += Math.PI;
+      this.pitch = -this.pitch;
+      this.pitchGoal = -this.pitchGoal;
+    }
     this.followMode = 'none';
     this.pointOfViewTracksSubject = false;
     this.followOffset.set(0, 0, 0);

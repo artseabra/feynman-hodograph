@@ -4,7 +4,8 @@ import { AudioEngine } from './audio/audioEngine';
 import { crossedApsisEvents, crossedWedgeEvents, hodographCircle, orbitalState, TAU } from './model/orbit';
 import { FallbackRenderer } from './scene/fallback';
 import { HodographScene } from './scene/hodographScene';
-import type { AudioMix, CameraFocus, CameraView, InstrumentState, ThemeName, ThemePalette } from './types';
+import type { AudioMix, CameraFocus, CameraView, ConstructionLayout, InstrumentState, ThemeName, ThemePalette } from './types';
+import { initialCameraState, reduceCameraState } from './ui/cameraState';
 import { InterfaceTooltipController } from './ui/interfaceTooltips';
 
 const palettes: Record<ThemeName, ThemePalette> = {
@@ -88,6 +89,11 @@ function percentage(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
+function formatTimeScale(value: number): string {
+  if (Math.abs(value) < 1e-9) return '0×';
+  return (value < 0 ? '−' : '') + Math.abs(value).toFixed(1) + '×';
+}
+
 function formatClock(seconds: number): string {
   const wholeSeconds = Math.max(0, Math.floor(Number.isFinite(seconds) ? seconds : 0));
   return `${Math.floor(wholeSeconds / 60)}:${String(wholeSeconds % 60).padStart(2, '0')}`;
@@ -102,6 +108,14 @@ const stageShell = getElement<HTMLElement>('#stage-shell');
 const stageGuide = getElement<HTMLElement>('#stage-guide');
 const stageGuideDismiss = getElement<HTMLButtonElement>('#stage-guide-dismiss');
 const stageInstructions = getElement<HTMLElement>('#stage-instructions');
+const stageControlsToggle = getElement<HTMLButtonElement>('#stage-controls-toggle');
+const stageControlsOverlay = getElement<HTMLElement>('#stage-controls-overlay');
+const stageControlsClose = getElement<HTMLButtonElement>('#stage-controls-close');
+const cameraFramingHud = getElement<HTMLElement>('#camera-framing-hud');
+const cameraFramingControl = getElement<HTMLInputElement>('#camera-framing-control');
+const cameraFramingState = getElement<HTMLOutputElement>('#camera-framing-state');
+const cameraFramingDecrease = getElement<HTMLButtonElement>('#camera-framing-decrease');
+const cameraFramingIncrease = getElement<HTMLButtonElement>('#camera-framing-increase');
 const radiusReadout = getElement<HTMLElement>('#radius-readout');
 const speedReadout = getElement<HTMLElement>('#speed-readout');
 const offsetReadout = getElement<HTMLElement>('#offset-readout');
@@ -119,7 +133,8 @@ const themeToggle = getElement<HTMLButtonElement>('#theme-toggle');
 const navNarration = getElement<HTMLButtonElement>('#nav-narration');
 const navNarrationIcon = getElement<HTMLElement>('#nav-narration-icon');
 const navNarrationLabel = getElement<HTMLElement>('#nav-narration-label');
-const cameraReset = getElement<HTMLButtonElement>('#camera-reset');
+const constructionLayoutToggle = getElement<HTMLButtonElement>('#construction-layout-toggle');
+const constructionLayoutLabel = getElement<HTMLElement>('#construction-layout-label');
 const soundEnable = getElement<HTMLButtonElement>('#sound-enable');
 const soundStateLabel = getElement<HTMLElement>('#sound-state-label');
 const soundStateIcon = getElement<HTMLElement>('.sound-state-icon');
@@ -129,6 +144,8 @@ const narrationPlayIcon = getElement<HTMLElement>('.narration-play-icon');
 const narrationPlayLabel = getElement<HTMLElement>('#narration-play-label');
 const narrationSeek = getElement<HTMLInputElement>('#narration-seek');
 const narrationTime = getElement<HTMLOutputElement>('#narration-time');
+const narrationVolume = getElement<HTMLInputElement>('#narration-volume');
+const narrationVolumeValue = getElement<HTMLOutputElement>('#narration-volume-value');
 const storySection = getElement<HTMLElement>('#story');
 const interfaceTooltips = new InterfaceTooltipController();
 
@@ -154,6 +171,7 @@ const audioValues = {
 };
 
 const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+const initialCamera = initialCameraState();
 const state: InstrumentState = {
   eccentricity: Number(eccentricityControl.value),
   wedges: Number(wedgesControl.value),
@@ -162,7 +180,8 @@ const state: InstrumentState = {
   playing: !prefersReducedMotion,
   theme: getThemePreference(),
   activeDock: null,
-  cameraFocus: 'free',
+  ...initialCamera,
+  constructionLayout: 'merged',
   audio: {
     enabled: false,
     muted: false,
@@ -176,6 +195,7 @@ const state: InstrumentState = {
 let scene: HodographScene | null = null;
 let fallback: FallbackRenderer | null = null;
 let exploring = false;
+let cameraFramingHudTimer: number | undefined;
 try {
   scene = new HodographScene(stage, { eccentricity: state.eccentricity, wedges: state.wedges }, palettes[state.theme]);
 } catch {
@@ -194,7 +214,7 @@ function currentMix(): AudioMix {
 function updateControlReadouts(): void {
   eccentricityValue.value = state.eccentricity.toFixed(2);
   wedgesValue.value = String(state.wedges);
-  speedValue.value = `${state.speed.toFixed(1)}×`;
+  speedValue.value = formatTimeScale(state.speed);
   Object.entries(audioValues).forEach(([key, output]) => {
     const mixKey = key as keyof Pick<AudioMix, 'master' | 'gravity' | 'velocity' | 'markers'>;
     output.value = percentage(state.audio[mixKey]);
@@ -250,6 +270,11 @@ function syncNarrationPlayer(): void {
   navNarration.classList.toggle('is-active', playing);
 }
 
+function syncNarrationVolume(): void {
+  narrationAudio.volume = Number(narrationVolume.value);
+  narrationVolumeValue.value = percentage(narrationAudio.volume);
+}
+
 async function toggleNarration(scrollOnPlay = false): Promise<void> {
   const starting = narrationAudio.paused || narrationAudio.ended;
   if (starting) {
@@ -281,6 +306,7 @@ function setupNarrationPlayer(): void {
     narrationAudio.currentTime = Number(narrationSeek.value);
     syncNarrationPlayer();
   });
+  narrationVolume.addEventListener('input', syncNarrationVolume);
   ['loadedmetadata', 'durationchange', 'timeupdate', 'play', 'pause', 'ended'].forEach(eventName => {
     narrationAudio.addEventListener(eventName, syncNarrationPlayer);
   });
@@ -290,6 +316,7 @@ function setupNarrationPlayer(): void {
     narrationPlayLabel.textContent = 'Unavailable';
     navNarrationLabel.textContent = 'Narration unavailable';
   });
+  syncNarrationVolume();
   syncNarrationPlayer();
 }
 
@@ -325,11 +352,49 @@ function resizeScene(): void {
 function setExploring(nextExploring: boolean): void {
   exploring = nextExploring;
   stageShell.dataset.exploring = String(exploring);
-  const inspectAction = window.matchMedia?.('(hover: none)').matches ? 'tap' : 'hover';
   stageInstructions.textContent = exploring
-    ? `Drag to orbit · scroll to dolly · ${inspectAction} an element to inspect · click outside for page scroll`
-    : `${inspectAction[0].toUpperCase()}${inspectAction.slice(1)} an element to inspect · click the construction to explore`;
+    ? 'Drag to orbit · scroll to reframe · click outside for page scroll'
+    : 'Select the construction to explore';
   scene?.setExploring(exploring);
+}
+
+function syncCameraFraming(value = scene?.getCameraFraming() ?? Number(cameraFramingControl.value) / 100): void {
+  const framing = Math.max(0, Math.min(1, value));
+  const position = Math.round(framing * 100);
+  cameraFramingControl.value = String(position);
+  cameraFramingState.value = String(position);
+  cameraFramingHud.style.setProperty('--camera-framing-position', `${position}%`);
+}
+
+function scheduleCameraFramingHudClose(): void {
+  if (cameraFramingHudTimer !== undefined) window.clearTimeout(cameraFramingHudTimer);
+  cameraFramingHudTimer = window.setTimeout(() => {
+    cameraFramingHud.hidden = true;
+    cameraFramingHudTimer = undefined;
+  }, 2200);
+}
+
+function showCameraFramingHud(): void {
+  cameraFramingHud.hidden = false;
+  scheduleCameraFramingHudClose();
+}
+
+function stepCameraFraming(delta: number): void {
+  const framing = scene?.adjustCameraFraming(delta)
+    ?? Math.max(0, Math.min(1, Number(cameraFramingControl.value) / 100 + delta));
+  syncCameraFraming(framing);
+  showCameraFramingHud();
+}
+
+function setStageControlsOpen(open: boolean): void {
+  stageControlsOverlay.hidden = !open;
+  stageControlsToggle.setAttribute('aria-expanded', String(open));
+  if (open) {
+    interfaceTooltips.hideNow();
+    stageControlsClose.focus();
+  } else {
+    stageControlsToggle.focus();
+  }
 }
 
 function dismissStageGuide(): void {
@@ -351,14 +416,81 @@ function syncAudio(): void {
   updateControlReadouts();
 }
 
-function setCameraFocus(focus: CameraFocus): void {
-  state.cameraFocus = focus;
-  scene?.setCameraFocus(focus);
-  document.querySelectorAll<HTMLButtonElement>('[data-camera-focus]').forEach(button => {
-    const active = button.dataset.cameraFocus === focus;
+function syncCameraControls(): void {
+  document.querySelectorAll<HTMLButtonElement>('[data-camera-view]').forEach(button => {
+    const active = button.dataset.cameraView === state.cameraView;
     button.classList.toggle('is-selected', active);
     button.setAttribute('aria-pressed', String(active));
   });
+  document.querySelectorAll<HTMLButtonElement>('[data-camera-focus]').forEach(button => {
+    const active = button.dataset.cameraFocus === state.cameraFocus;
+    button.classList.toggle('is-selected', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+}
+
+function syncConstructionLayoutControl(): void {
+  const separated = state.constructionLayout === 'separated';
+  constructionLayoutToggle.dataset.constructionLayout = state.constructionLayout;
+  constructionLayoutToggle.setAttribute('aria-pressed', String(separated));
+  constructionLayoutToggle.setAttribute(
+    'aria-label',
+    separated
+      ? 'Merge position and velocity spaces at the shared origin'
+      : 'Show separated position and velocity spaces',
+  );
+  constructionLayoutLabel.textContent = separated ? 'Separated construction' : 'Merged construction';
+}
+
+function togglePlayback(): void {
+  if (state.playing) {
+    state.playing = false;
+  } else {
+    if (Math.abs(state.speed) < 1e-9) {
+      state.speed = 1;
+      speedControl.value = '1';
+    }
+    state.playing = true;
+  }
+  updateControlReadouts();
+}
+
+function selectConstructionLayout(layout: ConstructionLayout): void {
+  if (state.constructionLayout === layout) return;
+  state.constructionLayout = layout;
+  scene?.setLayout(layout);
+  syncCameraFraming();
+  syncConstructionLayoutControl();
+}
+
+function selectCameraView(view: CameraView): void {
+  const next = reduceCameraState(state, { type: 'preset', view });
+  state.cameraView = next.cameraView;
+  state.cameraFocus = next.cameraFocus;
+  scene?.setView(view);
+  syncCameraFraming();
+  syncCameraControls();
+  activateDock(null);
+}
+
+function setCameraFocus(focus: CameraFocus): void {
+  // An active travel mode already owns the current bearing. Re-entering it
+  // would either discard an authored fixed view (Free) or jump a body-relative
+  // camera back to its initial bearing, so repeated selection is a true no-op.
+  if (state.cameraFocus === focus) return;
+  const next = reduceCameraState(state, { type: 'focus', focus });
+  state.cameraView = next.cameraView;
+  state.cameraFocus = next.cameraFocus;
+  scene?.setCameraFocus(focus);
+  syncCameraControls();
+}
+
+function markCameraCustom(): void {
+  const next = reduceCameraState(state, { type: 'manual' });
+  if (next.cameraView === state.cameraView) return;
+  state.cameraView = next.cameraView;
+  state.cameraFocus = next.cameraFocus;
+  syncCameraControls();
 }
 
 document.querySelectorAll<HTMLButtonElement>('[data-dock]').forEach(button => {
@@ -372,20 +504,76 @@ stageGuideDismiss.addEventListener('click', () => {
   setExploring(true);
   dismissStageGuide();
 });
-stage.addEventListener('pointerdown', () => setExploring(true));
+stage.addEventListener('pointerdown', () => {
+  setExploring(true);
+  scene?.canvas.focus({ preventScroll: true });
+});
 stage.addEventListener('hodograph:interact', () => {
   setExploring(true);
   dismissStageGuide();
 }, { once: true });
+stage.addEventListener('hodograph:interact', event => {
+  if (!(event instanceof CustomEvent)) return;
+  if (typeof event.detail?.cameraFraming === 'number') syncCameraFraming(event.detail.cameraFraming);
+  if (event.detail?.cameraView === 'custom') markCameraCustom();
+});
 document.addEventListener('pointerdown', event => {
   if (event.target instanceof Node && !stageShell.contains(event.target)) setExploring(false);
 });
 
+stageControlsToggle.addEventListener('click', () => setStageControlsOpen(true));
+stageControlsClose.addEventListener('click', () => setStageControlsOpen(false));
+stageControlsOverlay.addEventListener('pointerdown', event => {
+  if (event.target === stageControlsOverlay) setStageControlsOpen(false);
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !stageControlsOverlay.hidden) setStageControlsOpen(false);
+});
+
+stage.addEventListener('keydown', event => {
+  if (!(event.target instanceof HTMLCanvasElement)) return;
+  let handled = true;
+  switch (event.key) {
+    case 'ArrowLeft': scene?.nudgeCamera(event.shiftKey ? 'pan-left' : 'orbit-left'); break;
+    case 'ArrowRight': scene?.nudgeCamera(event.shiftKey ? 'pan-right' : 'orbit-right'); break;
+    case 'ArrowUp': scene?.nudgeCamera(event.shiftKey ? 'pan-up' : 'orbit-up'); break;
+    case 'ArrowDown': scene?.nudgeCamera(event.shiftKey ? 'pan-down' : 'orbit-down'); break;
+    case '[': {
+      stepCameraFraming(-0.045);
+      break;
+    }
+    case ']': {
+      stepCameraFraming(0.045);
+      break;
+    }
+    case '0': selectCameraView('spatial'); break;
+    default:
+      if (event.code === 'Space') togglePlayback();
+      else handled = false;
+  }
+  if (!handled) return;
+  event.preventDefault();
+  setExploring(true);
+  dismissStageGuide();
+});
+
+cameraFramingControl.addEventListener('input', () => {
+  const framing = scene?.setCameraFraming(Number(cameraFramingControl.value) / 100)
+    ?? Number(cameraFramingControl.value) / 100;
+  syncCameraFraming(framing);
+  showCameraFramingHud();
+});
+cameraFramingControl.addEventListener('focus', showCameraFramingHud);
+cameraFramingDecrease.addEventListener('click', () => stepCameraFraming(-0.045));
+cameraFramingIncrease.addEventListener('click', () => stepCameraFraming(0.045));
+cameraFramingHud.addEventListener('pointerenter', () => {
+  if (cameraFramingHudTimer !== undefined) window.clearTimeout(cameraFramingHudTimer);
+});
+cameraFramingHud.addEventListener('pointerleave', scheduleCameraFramingHudClose);
+
 document.querySelectorAll<HTMLButtonElement>('[data-camera-view]').forEach(button => {
   button.addEventListener('click', () => {
-    setCameraFocus('free');
-    scene?.setView(button.dataset.cameraView as CameraView);
-    activateDock(null);
+    selectCameraView(button.dataset.cameraView as CameraView);
   });
 });
 
@@ -396,10 +584,12 @@ document.querySelectorAll<HTMLButtonElement>('[data-camera-focus]').forEach(butt
   });
 });
 
-playToggle.addEventListener('click', () => {
-  state.playing = !state.playing;
-  updateControlReadouts();
+constructionLayoutToggle.addEventListener('click', () => {
+  interfaceTooltips.hideNow();
+  selectConstructionLayout(state.constructionLayout === 'merged' ? 'separated' : 'merged');
 });
+
+playToggle.addEventListener('click', togglePlayback);
 
 restart.addEventListener('click', () => {
   state.meanAnomaly = 0;
@@ -408,6 +598,7 @@ restart.addEventListener('click', () => {
 
 speedControl.addEventListener('input', () => {
   state.speed = Number(speedControl.value);
+  state.playing = Math.abs(state.speed) > 1e-9;
   updateControlReadouts();
 });
 
@@ -422,11 +613,6 @@ wedgesControl.addEventListener('input', () => {
 });
 
 themeToggle.addEventListener('click', () => applyTheme(state.theme === 'light' ? 'chalkboard' : 'light'));
-cameraReset.addEventListener('click', () => {
-  setCameraFocus('free');
-  scene?.frameAll();
-  activateDock(null);
-});
 
 soundEnable.addEventListener('click', async () => {
   if (!audio.isEnabled) {
@@ -468,11 +654,15 @@ applyTheme(state.theme);
 setExploring(false);
 setupNarrationPlayer();
 updateSoundButton();
+syncCameraControls();
+syncCameraFraming();
+syncConstructionLayoutControl();
 updateSurface();
 resizeScene();
 window.requestAnimationFrame(animate);
 
 window.addEventListener('pagehide', () => {
+  if (cameraFramingHudTimer !== undefined) window.clearTimeout(cameraFramingHudTimer);
   resizeObserver.disconnect();
   scene?.destroy();
   narrationAudio.pause();

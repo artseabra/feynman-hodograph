@@ -24,11 +24,19 @@
           <span>IFTHIS / INSTRUMENT</span>
         </a>
         <div class="masthead-actions">
-          <button id="nav-narration" class="icon-button nav-narration-button" type="button" aria-label="Play narration" aria-pressed="false" data-interface-tooltip="narration-nav">
+          <button id="nav-narration" class="icon-button nav-narration-button" type="button" aria-label="Play narration" aria-pressed="false">
             <span id="nav-narration-icon" aria-hidden="true">▶</span>
             <span id="nav-narration-label" class="sr-only">Play narration</span>
           </button>
-          <button id="theme-toggle" class="icon-button" type="button" aria-label="Switch to chalkboard theme" data-interface-tooltip="theme">
+          <button id="construction-layout-toggle" class="icon-button construction-layout-toggle" type="button" aria-label="Show separated position and velocity spaces" aria-pressed="false" data-construction-layout="merged" data-interface-tooltip="construction-layout">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <ellipse class="layout-glyph-position" cx="12" cy="14" rx="7.5" ry="3.5" />
+              <circle class="layout-glyph-velocity" cx="12" cy="10" r="5.5" />
+              <path class="layout-glyph-origin" d="M12 7.5v9M9.25 12h5.5" />
+            </svg>
+            <span id="construction-layout-label" class="sr-only">Merged construction</span>
+          </button>
+          <button id="theme-toggle" class="icon-button" type="button" aria-label="Switch to chalkboard theme">
             <span aria-hidden="true">◐</span>
           </button>
         </div>
@@ -37,7 +45,7 @@
       <section id="top" class="instrument" aria-labelledby="instrument-title">
         <div class="instrument-heading">
           <div>
-            <p class="eyebrow">RECONSTRUCTED FROM THE LOST LECTURE · GOODSTEIN &amp; GOODSTEIN</p>
+            <p class="eyebrow">RECOVERED ARGUMENT · GOODSTEIN &amp; GOODSTEIN · CONTEMPORARY TRANSLATION</p>
             <h1 id="instrument-title">The hodograph</h1>
           </div>
           <p class="dek">A planet traces an ellipse in position space. Its velocity traces a circle—one displaced from the origin by eccentricity.</p>
@@ -48,7 +56,7 @@
           <aside id="stage-guide" class="stage-guide" aria-label="How to explore the spatial proof">
             <div>
               <span class="stage-guide-kicker">Spatial controls</span>
-              <p><strong>Drag</strong> to orbit. <strong>Scroll</strong> to zoom. Hover, click, or tap a construction element for its note.</p>
+              <p><strong>Drag</strong> to orbit. <strong>Scroll</strong> to reframe. Hover, click, or tap a construction element for its note.</p>
             </div>
             <button id="stage-guide-dismiss" class="stage-guide-dismiss" type="button">Enter canvas <span aria-hidden="true">→</span></button>
           </aside>
@@ -66,7 +74,40 @@
             <span>|v| <b id="speed-readout">—</b></span>
             <span>offset <b id="offset-readout">—</b></span>
           </div>
-          <p id="stage-instructions" class="stage-instructions">Hover an element to inspect · click the construction to explore</p>
+          <p id="stage-instructions" class="stage-instructions">Select the construction to explore</p>
+          <button id="stage-controls-toggle" class="stage-controls-toggle" type="button" aria-label="Open interaction controls" aria-controls="stage-controls-overlay" aria-expanded="false">?</button>
+          <div id="stage-controls-overlay" class="stage-controls-overlay" hidden>
+            <section class="stage-controls-sheet" role="dialog" aria-modal="true" aria-labelledby="stage-controls-title">
+              <header class="stage-controls-header">
+                <div>
+                  <span class="stage-controls-kicker">Instrument controls</span>
+                  <h2 id="stage-controls-title">Move through the proof.</h2>
+                </div>
+                <button id="stage-controls-close" class="stage-controls-close" type="button" aria-label="Close interaction controls">×</button>
+              </header>
+              <div class="stage-controls-grid">
+                <div class="stage-control-row"><span>Orbit</span><span>Drag</span><span><kbd>←</kbd> <kbd>↑</kbd> <kbd>↓</kbd> <kbd>→</kbd></span></div>
+                <div class="stage-control-row"><span>Pan</span><span><kbd>Shift</kbd> + drag</span><span><kbd>Shift</kbd> + arrows</span></div>
+                <div class="stage-control-row"><span>Camera framing</span><span>Scroll or pinch</span><span><kbd>[</kbd> <kbd>]</kbd></span></div>
+                <div class="stage-control-row"><span>Restore Spatial</span><span></span><span><kbd>0</kbd></span></div>
+                <div class="stage-control-row"><span>Play / pause</span><span></span><span><kbd>Space</kbd></span></div>
+              </div>
+              <p class="stage-controls-note">Keyboard paths become active when the canvas has focus.</p>
+            </section>
+          </div>
+          <div id="camera-framing-hud" class="camera-framing-hud" hidden>
+            <button id="camera-framing-decrease" class="camera-framing-step" type="button" aria-label="Tighten camera framing">‹</button>
+            <div class="camera-framing-scale">
+              <div class="camera-framing-numbers" aria-hidden="true">
+                <span>0</span><span>20</span><span>40</span><span>60</span><span>80</span><span>100</span>
+              </div>
+              <div class="camera-framing-ruler">
+                <input id="camera-framing-control" type="range" min="0" max="100" step="1" value="50" aria-label="Camera framing from tight to wide" />
+                <output id="camera-framing-state" for="camera-framing-control">50</output>
+              </div>
+            </div>
+            <button id="camera-framing-increase" class="camera-framing-step" type="button" aria-label="Widen camera framing">›</button>
+          </div>
           <p id="render-status" class="render-status" role="status" hidden></p>
           <section class="dock" aria-label="Hodograph instrument controls">
           <div class="dock-tabs" role="toolbar" aria-label="Instrument control sections">
@@ -87,14 +128,14 @@
               </div>
               <div class="control-group control-group-wide">
                 <label for="speed-control" data-interface-tooltip="time-scale">Time scale <output id="time-scale-value">1.0×</output></label>
-                <input id="speed-control" type="range" min="0.2" max="3" step="0.1" value="1" data-interface-tooltip="time-scale" />
+                <input id="speed-control" type="range" min="-3" max="3" step="0.1" value="1" data-interface-tooltip="time-scale" aria-label="Signed time scale: negative runs backward, zero stops, positive runs forward" />
               </div>
             </section>
 
             <section id="panel-geometry" class="dock-panel" role="region" aria-labelledby="tab-geometry" data-panel="geometry" hidden>
               <div class="control-group control-group-wide">
                 <label for="eccentricity-control" data-interface-tooltip="eccentricity">Eccentricity, <i>e</i> <output id="eccentricity-value">0.55</output></label>
-                <input id="eccentricity-control" type="range" min="0" max="0.85" step="0.01" value="0.55" data-interface-tooltip="eccentricity" />
+                <input id="eccentricity-control" type="range" min="0" max="0.92" step="0.01" value="0.55" data-interface-tooltip="eccentricity" />
               </div>
               <div class="control-group control-group-wide">
                 <label for="wedges-control" data-interface-tooltip="wedge-count">Equal-time wedges, N <output id="wedges-value">16</output></label>
@@ -102,27 +143,30 @@
               </div>
             </section>
 
-            <section id="panel-camera" class="dock-panel" role="region" aria-labelledby="tab-camera" data-panel="camera" hidden>
-              <div class="control-group control-group-actions">
-                <span class="control-label">Canonical views</span>
+            <section id="panel-camera" class="dock-panel camera-panel" role="region" aria-labelledby="tab-camera" data-panel="camera" hidden>
+              <div class="control-group camera-group">
+                <span class="control-label">View</span>
                 <div class="button-row camera-row">
-                  <button class="secondary-button" type="button" data-camera-view="proof" data-interface-tooltip="camera-proof">Proof</button>
-                  <button class="secondary-button" type="button" data-camera-view="front" data-interface-tooltip="camera-front">Front</button>
+                  <button class="secondary-button is-selected" type="button" aria-pressed="true" data-camera-view="spatial" data-interface-tooltip="camera-spatial">Spatial</button>
+                  <button class="secondary-button" type="button" aria-pressed="false" data-camera-view="centered" data-interface-tooltip="camera-centered">Centered</button>
+                </div>
+              </div>
+              <div class="control-group camera-group">
+                <span class="control-label">Study axes</span>
+                <div class="button-row camera-row">
                   <button class="secondary-button" type="button" data-camera-view="overhead" data-interface-tooltip="camera-overhead">Overhead</button>
                   <button class="secondary-button" type="button" data-camera-view="side" data-interface-tooltip="camera-side">Side</button>
-                  <button id="camera-reset" class="secondary-button" type="button" data-interface-tooltip="camera-frame-all">Frame all</button>
                 </div>
               </div>
-              <div class="control-group control-group-actions">
-                <span class="control-label">Orbit with</span>
+              <div class="control-group camera-group camera-group-travel">
+                <span class="control-label">Travel with</span>
                 <div class="button-row camera-row">
-                  <button class="secondary-button" type="button" data-camera-focus="sun" aria-pressed="false" data-interface-tooltip="camera-sun">From Sun</button>
+                  <button class="secondary-button is-selected" type="button" data-camera-focus="free" aria-pressed="true" data-interface-tooltip="camera-free">Free</button>
+                  <button class="secondary-button" type="button" data-camera-focus="sun" aria-pressed="false" data-interface-tooltip="camera-sun">Sun</button>
                   <button class="secondary-button" type="button" data-camera-focus="planet" aria-pressed="false" data-interface-tooltip="camera-planet">Planet</button>
-                  <button class="secondary-button" type="button" data-camera-focus="hodograph" aria-pressed="false" data-interface-tooltip="camera-hodograph">Hodograph</button>
-                  <button class="secondary-button is-selected" type="button" data-camera-focus="free" aria-pressed="true" data-interface-tooltip="camera-free">Free camera</button>
+                  <button class="secondary-button" type="button" data-camera-focus="hodograph" aria-pressed="false" data-interface-tooltip="camera-hodograph">Velocity</button>
                 </div>
               </div>
-              <p class="control-note">Proof is the composed teaching view. Frame all is a higher neutral overview. From Sun rides the Sun’s surface and keeps the planet centred until you look away; Planet and Hodograph pin moving targets. Direction, dolly, and local pan remain yours.</p>
             </section>
 
             <section id="panel-sound" class="dock-panel" role="region" aria-labelledby="tab-sound" data-panel="sound" hidden>
@@ -136,22 +180,24 @@
                 </div>
               </div>
               <div class="audio-controls" aria-describedby="sound-note">
-                <label for="sound-master" data-interface-tooltip="sound-master">Master <output id="sound-master-value">78%</output></label>
-                <input id="sound-master" type="range" min="0" max="1" step="0.01" value="0.78" data-interface-tooltip="sound-master" />
-                <label for="sound-gravity" data-interface-tooltip="sound-gravity">Gravity field <output id="sound-gravity-value">68%</output></label>
-                <input id="sound-gravity" type="range" min="0" max="1" step="0.01" value="0.68" data-interface-tooltip="sound-gravity" />
+                <label for="sound-master">Master <output id="sound-master-value">78%</output></label>
+                <input id="sound-master" type="range" min="0" max="1" step="0.01" value="0.78" />
+                <label for="sound-gravity" data-interface-tooltip="sound-gravity">Gravity field <output id="sound-gravity-value">74%</output></label>
+                <input id="sound-gravity" type="range" min="0" max="1" step="0.01" value="0.74" data-interface-tooltip="sound-gravity" />
                 <label for="sound-velocity" data-interface-tooltip="sound-hodograph">Hodograph field <output id="sound-velocity-value">56%</output></label>
                 <input id="sound-velocity" type="range" min="0" max="1" step="0.01" value="0.56" data-interface-tooltip="sound-hodograph" />
                 <label for="sound-markers" data-interface-tooltip="sound-markers">Boundary pulses <output id="sound-markers-value">92%</output></label>
                 <input id="sound-markers" type="range" min="0" max="1" step="0.01" value="0.92" data-interface-tooltip="sound-markers" />
+                <label for="narration-volume" class="narration-volume-label">Narration <output id="narration-volume-value">100%</output></label>
+                <input id="narration-volume" class="narration-volume-control" type="range" min="0" max="1" step="0.01" value="1" aria-label="Narration volume" />
               </div>
-              <p id="sound-note" class="control-note">The gravity bed rises and opens with 1/r². The hodograph field crossfades four fixed resonators with the velocity vector’s angle. Equal-time boundaries make short, dry inharmonic pulses; apsides remain distinct landmarks. Interpretive sonification, not planetary sound.</p>
+              <p id="sound-note" class="control-note">Contemporary interpretive sonification: mathematical relations mapped to sound, not planetary audio and not the surviving lecture recording.</p>
             </section>
           </div>
           </section>
-          <a class="story-threshold" href="#story" aria-label="Continue below to the story of the lost lecture" data-interface-tooltip="story-link">
+          <a class="story-threshold" href="#story" aria-label="Continue below to the story of the lost lecture">
             <span class="story-threshold-kicker">The lost lecture</span>
-            <span class="story-threshold-title">How a voice survived after its blackboard disappeared</span>
+            <span class="story-threshold-title">From fragments to recovery</span>
             <span class="story-threshold-arrow" aria-hidden="true">↓</span>
           </a>
         </div>
@@ -166,11 +212,11 @@
             <h3 id="narration-title">The lost lecture, told again.</h3>
             <p>Read by Alistair · ElevenLabs · 4:33</p>
             <div class="narration-controls">
-              <button id="narration-play" class="narration-play" type="button" aria-controls="narration-audio" aria-pressed="false" data-interface-tooltip="narration-play">
+              <button id="narration-play" class="narration-play" type="button" aria-controls="narration-audio" aria-pressed="false">
                 <span class="narration-play-icon" aria-hidden="true">▶</span>
                 <span id="narration-play-label">Play</span>
               </button>
-              <input id="narration-seek" type="range" min="0" max="1" step="0.01" value="0" aria-label="Narration position" disabled data-interface-tooltip="narration-seek" />
+              <input id="narration-seek" type="range" min="0" max="1" step="0.01" value="0" aria-label="Narration position" disabled />
               <output id="narration-time" for="narration-seek">0:00 / 4:33</output>
             </div>
           </div>
@@ -180,50 +226,146 @@
         </section>
 
         <header class="story-heading">
-          <p class="eyebrow">FROM BLACKBOARD TO RECOVERY</p>
-          <h2 id="story-title">A lecture that survived as a voice without its drawings.</h2>
-          <p>Feynman’s planetary-motion lecture was not lost because nobody preserved a recording. It was lost because the proof lived in the conversation between a voice and a blackboard—and the blackboard sequence disappeared from the record.</p>
+          <p class="eyebrow">FROM FRAGMENTS TO RECOVERY</p>
+          <h2 id="story-title">A lecture preserved in fragments, then reconstructed as an argument.</h2>
+          <p>The proof lived in the relation between Feynman’s voice and an evolving blackboard. A recording, sparse notes, and one lecture photograph survived; the complete blackboard sequence did not.</p>
         </header>
 
-        <div class="story-thread" aria-label="How the lecture was lost and recovered">
+        <div class="story-thread" aria-label="How the lecture was lost, recovered, and translated">
           <article class="story-beat">
             <p class="story-stamp">1964 / CALTECH</p>
             <div class="story-beat-copy">
               <h3>One special lecture for freshmen.</h3>
-              <p>In March 1964, Feynman returned to the Caltech freshman class for a special lecture on planetary motion. He set himself a severe constraint: recover Newton’s result using elementary geometry rather than the sophisticated conic machinery Newton had used.</p>
+              <p>In March 1964, Feynman returned to the Caltech freshman class for a special lecture on planetary motion. He had tried to follow Newton’s geometric proof but could not get past its specialized conic-section machinery, so he built an elementary geometric proof of his own.</p>
             </div>
+            <figure class="story-evidence story-evidence-wide">
+              <a class="story-evidence-media" href="/sources/Goodstein.pdf#page=5" target="_blank" rel="noreferrer" aria-label="Open page 5 of the Goodstein and Goodstein PDF in a new tab: the surviving 1964 lecture photograph.">
+                <img src="/sources/goodstein-p18-1964-lecture-photo.jpg" width="1350" height="717" loading="lazy" alt="Richard Feynman speaking beside a blackboard during the 1964 Caltech planetary-motion lecture." />
+              </a>
+              <figcaption>
+                <span class="source-kind">HISTORICAL PHOTO REPRODUCTION · GOODSTEIN &amp; GOODSTEIN, 1996 · PDF 5 / PRINT 18</span>
+                <div class="story-evidence-copy">
+                  <h4>The one surviving lecture photograph.</h4>
+                  <p>This crop from the Goodsteins’ article carries their identification of the sole photograph found of Feynman actually giving the 1964 planetary-motion lecture. The excerpt gives no photographer or archive credit for the image.</p>
+                </div>
+              </figcaption>
+            </figure>
           </article>
+
+          <article class="story-beat">
+            <p class="story-stamp">1964 / NOTES</p>
+            <div class="story-beat-copy">
+              <h3>A few pages hold the geometry in place.</h3>
+              <p>Feynman’s sparse handwritten notes preserve the outline of the construction and some of its diagrams. They are traces of the lecture rather than a complete visual record of the proof as it unfolded at the blackboard.</p>
+            </div>
+            <figure class="story-evidence story-evidence-notes">
+              <a class="story-evidence-media" href="/sources/Goodstein.pdf#page=1" target="_blank" rel="noreferrer" aria-label="Open page 1 of the Goodstein and Goodstein PDF in a new tab: Feynman’s surviving notes.">
+                <img src="/sources/goodstein-p14-feynman-notes.jpg" width="1083" height="1767" loading="lazy" alt="A page of Richard Feynman’s handwritten notes with geometric diagrams for the planetary-motion lecture." />
+              </a>
+              <figcaption>
+                <span class="source-kind">SOURCE REPRODUCTION · GOODSTEIN &amp; GOODSTEIN, 1996 · PDF 1 / PRINT 14</span>
+                <div class="story-evidence-copy">
+                  <h4>A reproduced page of Feynman’s notes.</h4>
+                  <p>This crop reproduces one of the sparse handwritten pages as printed in the Goodsteins’ article; it is not an independent source scan.</p>
+                </div>
+              </figcaption>
+            </figure>
+          </article>
+
           <article class="story-beat">
             <p class="story-stamp">1965 / OMITTED</p>
             <div class="story-beat-copy">
               <h3>It falls outside the canonical set.</h3>
-              <p>Robert Leighton received Feynman’s handwritten notes and sketches, but this special lecture was not included in the final 1965 volume of <i>The Feynman Lectures on Physics</i>, which centered on quantum mechanics. An audiotape and a few pages of notes remained.</p>
+              <p>Robert Leighton received Feynman’s handwritten notes and sketches, but the special lecture was not included in the final 1965 volume of <i>The Feynman Lectures on Physics</i>. Its audiotape and a few pages of notes remained; unlike the rest of the course, its complete blackboard photographs were never found.</p>
             </div>
           </article>
+
+          <article class="story-beat">
+            <p class="story-stamp">1985 / CONTEXT</p>
+            <div class="story-beat-copy">
+              <h3>A later blackboard, not the missing one.</h3>
+              <p>The Goodsteins’ account also includes this 1985 photograph of Feynman at a blackboard. It belongs to the later biographical context of the recovery, not to the surviving evidence of the 1964 lecture.</p>
+            </div>
+            <figure class="story-evidence story-evidence-portrait">
+              <a class="story-evidence-media" href="/sources/Goodstein.pdf#page=8" target="_blank" rel="noreferrer" aria-label="Open page 8 of the Goodstein and Goodstein PDF in a new tab: a later 1985 photograph of Feynman.">
+                <img src="/sources/goodstein-p21-feynman-1985.jpg" width="500" height="900" loading="lazy" alt="Richard Feynman writing at a blackboard in 1985." />
+              </a>
+              <figcaption>
+                <span class="source-kind">LATER PHOTO REPRODUCTION · GOODSTEIN &amp; GOODSTEIN, 1996 · PDF 8 / PRINT 21</span>
+                <div class="story-evidence-copy">
+                  <h4>Feynman at a blackboard, 1985.</h4>
+                  <p>A later image, included as biographical context. It is not evidence of the 1964 lecture, and the excerpt gives no photographer or archive credit for it.</p>
+                </div>
+              </figcaption>
+            </figure>
+          </article>
+
           <article class="story-beat">
             <p class="story-stamp">1992–94 / RECOVERED</p>
             <div class="story-beat-copy">
               <h3>Enough traces to reconstruct an argument.</h3>
-              <p>While clearing Leighton’s office files, archivist Judith Goodstein found the unfinished material. David and Judith Goodstein later worked from the tape, transcript, Feynman’s sparse sketches, and Newton’s diagrams to recover the missing geometric sequence.</p>
+              <p>While clearing Leighton’s office files, archivist Judith Goodstein found the unfinished material. David and Judith Goodstein later worked from the tape, transcript, Feynman’s sketches, and selected pages from Kepler and Newton to reconstruct the missing blackboard sequence.</p>
+              <p class="story-reference"><a href="/sources/Goodstein.pdf" target="_blank" rel="noreferrer" aria-label="Open the exact Drive-supplied eight-page Goodstein excerpt in a new tab">Read the exact Drive-supplied eight-page Goodstein excerpt</a> · 1996 <i>Caltech Engineering &amp; Science</i>, printed pages 14–21. The excerpt states © 1996 California Institute of Technology and that it was reprinted with permission of W. W. Norton &amp; Company, Inc. Included in this local review build pending a separate publication-rights decision.</p>
             </div>
+          </article>
+
+          <article class="story-beat story-construction" aria-labelledby="construction-title">
+            <p class="story-stamp">NOW / TRANSLATED</p>
+            <div class="story-construction-copy">
+              <h3 id="construction-title">Two spaces, one shared instant.</h3>
+              <p>On the horizontal plane, Kepler’s area law marks equal times by equal swept areas. Over those matched intervals, the inverse-square pull supplies Sun-directed changes of velocity; chained on the vertical plane, they close into a circle. The orange planet and blue velocity point are one event represented twice; the dashed bridge is editorial correspondence, never a physical tether.</p>
+              <p>That is the proof move this instrument translates. Position space is the trace to be recovered; velocity space is the decisive change of language. Together, the 3D staging, camera views, bridge, and sound form another contemporary translation layer, not a feature of Feynman’s original presentation.</p>
+            </div>
+            <figure class="story-evidence story-evidence-representation">
+              <div class="story-evidence-media">
+                <svg class="translation-diagram" viewBox="0 0 1200 675" role="img" aria-labelledby="translation-diagram-title translation-diagram-desc" preserveAspectRatio="xMidYMid meet">
+                  <title id="translation-diagram-title">Position and velocity as one spatial construction</title>
+                  <desc id="translation-diagram-desc">An oblique technical rendering of a horizontal orbital plane and a vertical velocity plane sharing one origin. An orange planet and blue velocity point are joined by a dashed correspondence bridge.</desc>
+                  <rect class="translation-field" width="1200" height="675" />
+                  <path class="translation-plane translation-plane-position" d="M82 350 600 158 1118 350 600 542Z" />
+                  <path class="translation-grid" d="M211 302 729 494M341 254 859 446M470 206 988 398M211 398 729 206M341 446 859 254M470 494 988 302" />
+                  <path class="translation-plane translation-plane-velocity" d="M430 63 770 188 770 612 430 487Z" />
+                  <path class="translation-grid" d="M430 169 770 294M430 275 770 400M430 381 770 506M515 94 515 518M600 125 600 549M685 157 685 581" />
+                  <path class="translation-axis" d="M118 350H1082M600 91V585" />
+                  <g class="translation-wedges">
+                    <path d="M356 350 334 310M356 350 397 275M356 350 475 250M356 350 584 245M356 350 699 264M356 350 795 302M356 350 839 350" />
+                  </g>
+                  <ellipse class="translation-orbit" cx="600" cy="350" rx="244" ry="106" />
+                  <ellipse class="translation-hodograph" cx="620" cy="260" rx="154" ry="211" transform="rotate(-21 620 260)" />
+                  <path class="translation-chain" d="M508 111 550 83 603 67 660 69 711 91 749 131 769 182" />
+                  <path class="translation-bridge" d="M838 318 872 264 804 206 742 136" />
+                  <path class="translation-position-vector" d="M356 350 838 318" />
+                  <path class="translation-velocity-vector" d="M600 350 742 136" />
+                  <path class="translation-radius-vector" d="M620 260 742 136" />
+                  <circle class="translation-origin" cx="600" cy="350" r="7" />
+                  <circle class="translation-sun" cx="356" cy="350" r="16" />
+                  <circle class="translation-planet" cx="838" cy="318" r="14" />
+                  <circle class="translation-center" cx="620" cy="260" r="8" />
+                  <circle class="translation-velocity-point" cx="742" cy="136" r="14" />
+                  <g class="translation-markers">
+                    <circle cx="508" cy="111" r="5" /><circle cx="550" cy="83" r="5" /><circle cx="603" cy="67" r="5" />
+                    <circle cx="660" cy="69" r="5" /><circle cx="711" cy="91" r="5" /><circle cx="749" cy="131" r="5" /><circle cx="769" cy="182" r="5" />
+                  </g>
+                  <text class="translation-label" x="108" y="326">POSITION SPACE</text>
+                  <text class="translation-label" x="792" y="198">VELOCITY SPACE</text>
+                  <text class="translation-caption" x="108" y="622">ONE EVENT · TWO REPRESENTATIONS · EDITORIAL BRIDGE</text>
+                </svg>
+              </div>
+              <figcaption>
+                <span class="source-kind">CONTEMPORARY TRANSLATION · IFTHIS / 2026</span>
+                <div class="story-evidence-copy">
+                  <h4>Position and velocity, redrawn.</h4>
+                  <p>A present-day representation of the ellipse and circular hodograph. It is interpretation, not historical evidence.</p>
+                </div>
+              </figcaption>
+            </figure>
           </article>
         </div>
 
-        <aside class="story-construction" aria-labelledby="construction-title">
-          <div class="story-callout-label">
-            <p class="eyebrow">WHAT THIS INSTRUMENT RE-OPENS</p>
-          </div>
-          <div class="story-construction-copy">
-            <h3 id="construction-title">Two spaces, one shared instant.</h3>
-            <p>On the horizontal plane, equal increments of mean anomaly make equal-time wedges from the Sun. On the vertical plane, the corresponding velocity changes close into a circle. The dashed bridge is not a physical connection: it marks the same instant in those two mathematical spaces.</p>
-            <p>That is the wager of the lecture. If the velocity construction is circular and displaced, the position orbit has the geometry of a conic—with the Sun at a focus.</p>
-          </div>
-        </aside>
-
-        <p class="source-note">Historical account adapted from David and Judith Goodstein’s <a href="https://calteches.library.caltech.edu/3822/" target="_blank" rel="noreferrer">Caltech account of <i>Feynman’s Lost Lecture</i></a>. The hodograph circle predates Feynman and is associated with Hamilton (1846). This instrument is a contemporary spatial interpretation, not a reproduction of the original classroom performance.</p>
+        <p class="source-note">Historical account grounded in David and Judith Goodstein’s <a href="/sources/Goodstein.pdf" target="_blank" rel="noreferrer">1996 Caltech excerpt</a> and its <a href="https://calteches.library.caltech.edu/3822/" target="_blank" rel="noreferrer">archive record</a>. The hodograph circle predates Feynman and is associated with Hamilton (1846). Source artifacts, reconstructed argument, and this instrument’s contemporary interpretation are kept distinct.</p>
         <footer class="creator-credit" aria-label="Creator credit">
           <span class="creator-credit-label">Created by</span>
-          <p><strong>Art Seabra</strong>, scientist, mathematician, and founder of Ifthis Research.</p>
+          <p><strong><a href="https://twitter.com/intent/follow?screen_name=ifthis" target="_blank" rel="noreferrer">Art Seabra</a></strong>, scientist, mathematician, and founder of Ifthis Research.</p>
         </footer>
       </section>
     </main>

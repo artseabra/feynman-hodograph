@@ -38,6 +38,21 @@ describe('Keplerian sonification mapping', () => {
     expect(gravityFrame(perihelionState).brightness).toBeGreaterThan(gravityFrame(aphelionState).brightness);
   });
 
+  it('maps sampled aphelion-to-perihelion 1/r² monotonically onto restrained endpoints', () => {
+    const frames = Array.from({ length: 17 }, (_, index) => (
+      gravityFrame(orbitalState(0.55, Math.PI + Math.PI * index / 16))
+    ));
+
+    expect(frames[0]?.gain).toBeCloseTo(0.2, 12);
+    expect(frames[0]?.brightness).toBeCloseTo(0.18, 12);
+    expect(frames.at(-1)?.gain).toBeCloseTo(1, 12);
+    expect(frames.at(-1)?.brightness).toBeCloseTo(1, 12);
+    for (let index = 1; index < frames.length; index += 1) {
+      expect(frames[index]?.gain).toBeGreaterThanOrEqual(frames[index - 1]?.gain ?? 0);
+      expect(frames[index]?.brightness).toBeGreaterThanOrEqual(frames[index - 1]?.brightness ?? 0);
+    }
+  });
+
   it('uses exact equal-time crossings to create bounded inharmonic pulses', () => {
     const crossings = crossedWedgeEvents(0, TAU / 8, 16);
     const first = crossings[0];
