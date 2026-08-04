@@ -13,6 +13,8 @@ export interface OrbitalMeasures {
   hodographAngle: number;
   potential: number;
   potentialNormalized: number;
+  gravitationalField: number;
+  gravitationalFieldNormalized: number;
   kineticNormalized: number;
   radialVelocity: number;
 }
@@ -31,6 +33,9 @@ export function orbitalMeasures(state: OrbitalState): OrbitalMeasures {
   const potential = 1 / Math.max(state.radius, 1e-6);
   const minimumPotential = 1 / (1 + e);
   const maximumPotential = 1 / Math.max(1e-6, 1 - e);
+  const gravitationalField = potential * potential;
+  const minimumField = minimumPotential * minimumPotential;
+  const maximumField = maximumPotential * maximumPotential;
   const minimumKinetic = (1 - e) / (1 + e);
   const maximumKinetic = (1 + e) / Math.max(1e-6, 1 - e);
   const kinetic = state.speed * state.speed;
@@ -43,6 +48,10 @@ export function orbitalMeasures(state: OrbitalState): OrbitalMeasures {
     potentialNormalized: e < 1e-6
       ? 0.5
       : clamp((potential - minimumPotential) / (maximumPotential - minimumPotential), 0, 1),
+    gravitationalField,
+    gravitationalFieldNormalized: e < 1e-6
+      ? 0.5
+      : clamp((gravitationalField - minimumField) / (maximumField - minimumField), 0, 1),
     kineticNormalized: e < 1e-6
       ? 0.5
       : clamp((kinetic - minimumKinetic) / (maximumKinetic - minimumKinetic), 0, 1),

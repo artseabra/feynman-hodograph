@@ -22,6 +22,16 @@ describe('Keplerian sonification mapping', () => {
     expect(measures.hodographRadius).toBe(1);
     expect(measures.potentialNormalized).toBe(0.5);
     expect(measures.kineticNormalized).toBe(0.5);
+    expect(measures.gravitationalFieldNormalized).toBe(0.5);
+  });
+
+  it('makes the potential and field stronger as the planet approaches the focus', () => {
+    const perihelion = orbitalMeasures(orbitalState(0.55, 0));
+    const aphelion = orbitalMeasures(orbitalState(0.55, Math.PI));
+
+    expect(perihelion.potential).toBeGreaterThan(aphelion.potential);
+    expect(perihelion.gravitationalField).toBeGreaterThan(aphelion.gravitationalField);
+    expect(perihelion.gravitationalFieldNormalized).toBeGreaterThan(aphelion.gravitationalFieldNormalized);
   });
 
   it('uses the exact equal-time crossing to create a bounded resonant mark', () => {

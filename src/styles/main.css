@@ -48,6 +48,7 @@
 }
 
 html {
+  height: 100%;
   min-height: 100%;
   background: var(--paper);
   scroll-behavior: smooth;
@@ -55,7 +56,7 @@ html {
 
 body {
   min-width: 320px;
-  min-height: 100vh;
+  min-height: 100svh;
   margin: 0;
   color: var(--ink);
   background:
@@ -86,8 +87,11 @@ a:focus-visible {
 
 .app-shell {
   width: min(1480px, calc(100% - 42px));
+  display: flex;
+  min-height: 100svh;
+  flex-direction: column;
   margin: 0 auto;
-  padding: 12px 0 90px;
+  padding: 12px 0 14px;
 }
 
 .masthead {
@@ -170,6 +174,10 @@ a:focus-visible {
 }
 
 .instrument {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
   padding-top: clamp(18px, 2vw, 32px);
 }
 
@@ -217,8 +225,8 @@ h2 {
 
 .stage-shell {
   position: relative;
-  height: clamp(360px, calc(100svh - 255px), 540px);
-  min-height: 0;
+  min-height: 320px;
+  flex: 1 1 auto;
   overflow: hidden;
   border: 1px solid var(--rule-bright);
   border-radius: 12px;
@@ -413,7 +421,7 @@ kbd {
   position: absolute;
   z-index: 3;
   right: 22px;
-  bottom: 23px;
+  bottom: 62px;
   max-width: 43ch;
   margin: 0;
   color: var(--quiet);
@@ -439,20 +447,24 @@ kbd {
 }
 
 .dock {
-  margin-top: 14px;
-  overflow: hidden;
-  border: 1px solid var(--rule-bright);
-  border-radius: 10px;
-  background: var(--panel);
-  box-shadow: 0 15px 40px color-mix(in srgb, var(--ink) 7%, transparent);
-  backdrop-filter: blur(18px);
+  position: absolute;
+  z-index: 5;
+  bottom: 15px;
+  left: 50%;
+  width: max-content;
+  max-width: calc(100% - 44px);
+  transform: translateX(-50%);
 }
 
 .dock-tabs {
   display: flex;
   min-width: 0;
   overflow-x: auto;
-  border-bottom: 1px solid var(--rule);
+  border: 1px solid var(--rule-bright);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-strong) 88%, transparent);
+  box-shadow: 0 12px 34px color-mix(in srgb, var(--ink) 12%, transparent);
+  backdrop-filter: blur(18px);
   scrollbar-width: none;
 }
 
@@ -461,14 +473,14 @@ kbd {
 .dock-tab {
   position: relative;
   flex: 1 0 auto;
-  min-height: 45px;
-  padding: 0 17px;
+  min-height: 34px;
+  padding: 0 13px;
   border: 0;
   border-right: 1px solid var(--rule);
   background: transparent;
   color: var(--quiet);
   cursor: pointer;
-  font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font: 600 9px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
@@ -477,9 +489,9 @@ kbd {
 
 .dock-tab::after {
   position: absolute;
-  right: 18px;
-  bottom: 0;
-  left: 18px;
+  right: 12px;
+  bottom: 4px;
+  left: 12px;
   height: 2px;
   background: var(--hodograph);
   content: '';
@@ -500,16 +512,26 @@ kbd {
 }
 
 .dock-panels {
-  min-height: 141px;
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  width: min(760px, calc(100vw - 64px));
+  transform: translateX(-50%);
 }
 
 .dock-panel {
   position: relative;
   display: flex;
-  align-items: center;
-  gap: 30px;
-  min-height: 141px;
-  padding: 21px 24px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px 22px;
+  min-height: 0;
+  padding: 16px 18px;
+  border: 1px solid var(--rule-bright);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--panel-strong) 93%, transparent);
+  box-shadow: 0 18px 54px color-mix(in srgb, var(--ink) 16%, transparent);
+  backdrop-filter: blur(18px);
 }
 
 .dock-panel[hidden] { display: none; }
@@ -520,8 +542,8 @@ kbd {
 }
 
 .control-group-wide {
-  flex: 1 1 290px;
-  min-width: 220px;
+  flex: 1 1 235px;
+  min-width: min(235px, 100%);
 }
 
 .control-label,
@@ -565,6 +587,34 @@ input[type='range'] {
 .primary-button:hover {
   background: var(--hodograph);
   transform: translateY(-1px);
+}
+
+.sound-state-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  border: 1px solid var(--rule-bright);
+  border-radius: 5px;
+  padding: 0 10px;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.03em;
+}
+
+.sound-state-button:hover,
+.sound-state-button.is-active {
+  border-color: var(--hodograph);
+  background: color-mix(in srgb, var(--hodograph) 10%, transparent);
+  color: var(--ink);
+}
+
+.sound-state-icon {
+  color: var(--hodograph);
+  font-size: 15px;
+  line-height: 1;
 }
 
 .secondary-button:disabled {
@@ -724,12 +774,14 @@ input[type='range'] {
 
 @media (max-width: 680px) {
   .app-shell {
+    display: block;
+    min-height: 0;
     width: min(100% - 24px, 620px);
     padding-top: 13px;
     padding-bottom: 62px;
   }
 
-  .instrument { padding-top: 53px; }
+  .instrument { display: block; padding-top: 53px; }
   .instrument-heading { padding-bottom: 22px; }
   h1 { font-size: clamp(48px, 15vw, 72px); }
 
@@ -745,11 +797,11 @@ input[type='range'] {
 
   .stage-hud-left { left: 15px; }
   .stage-hud-right { right: 15px; }
-  .stage-telemetry { bottom: 15px; left: 15px; gap: 8px; }
-  .stage-instructions { right: 15px; bottom: 15px; max-width: 23ch; font-size: 9px; }
+  .stage-telemetry { bottom: 58px; left: 15px; gap: 8px; }
+  .stage-instructions { right: 15px; bottom: 58px; max-width: 23ch; font-size: 9px; }
   .stage-guide {
     top: auto;
-    bottom: 62px;
+    bottom: 104px;
     align-items: flex-start;
     gap: 12px;
     padding: 12px;
@@ -758,9 +810,10 @@ input[type='range'] {
   .stage-guide p { font-size: 11px; }
   .stage-guide-dismiss { padding: 8px; }
 
-  .dock { margin-top: 10px; }
-  .dock-tab { min-height: 42px; padding: 0 13px; font-size: 9px; }
-  .dock-panel { min-height: 178px; padding: 18px 16px; gap: 18px; }
+  .dock { bottom: 12px; max-width: calc(100% - 24px); }
+  .dock-tab { min-height: 34px; padding: 0 11px; font-size: 8px; }
+  .dock-panels { width: min(480px, calc(100vw - 40px)); }
+  .dock-panel { min-height: 0; max-height: min(62svh, 460px); overflow-y: auto; padding: 15px 14px; gap: 16px; }
   .control-group-wide { flex-basis: 100%; }
   .tooltip-copy { position: static; flex-basis: 100%; }
   .audio-controls { grid-template-columns: 1fr; gap: 7px; }

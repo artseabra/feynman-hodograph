@@ -87,39 +87,38 @@ export class AudioEngine {
     const profile = sonificationLensProfile(this.mix.lens);
     const activity = playing && !this.muted ? 1 : 0;
     const potentialShape = measures.potentialNormalized - 0.5;
-    const kineticShape = measures.kineticNormalized - 0.5;
     const phaseBrightness = 0.5 + 0.5 * Math.cos(measures.hodographAngle);
 
     // The field is a just-intoned stack whose slow colour follows potential.
     // Pitch only moves by a few cents, preserving a stable instrument rather
     // than turning the orbit into a queasy continuous siren.
-    const atmosphereBase = 58 * Math.pow(2, (measures.hodographRadius - 1) * 0.18 + potentialShape * 0.045);
+    const atmosphereBase = 58 * Math.pow(2, (measures.hodographRadius - 1) * 0.18 + potentialShape * 0.025);
     this.atmosphereVoices.forEach(voice => {
       setTarget(voice.oscillator.frequency, atmosphereBase * voice.ratio, time, 0.18);
       setTarget(
         voice.gain.gain,
-        voice.baseLevel * (0.78 + measures.potentialNormalized * 0.32),
+        voice.baseLevel * (0.58 + measures.gravitationalFieldNormalized * 0.56),
         time,
         0.2,
       );
     });
-    setTarget(this.atmosphereFilter.frequency, 420 + measures.potentialNormalized * 1_460, time, 0.22);
+    setTarget(this.atmosphereFilter.frequency, 330 + measures.gravitationalFieldNormalized * 1_840, time, 0.22);
     setTarget(
       this.atmosphere.gain,
-      this.mix.atmosphere * profile.atmosphere * activity * (0.42 + measures.angularMomentum * 0.28),
+      this.mix.atmosphere * profile.atmosphere * activity * (0.2 + measures.gravitationalFieldNormalized * 0.62),
       time,
       0.18,
     );
 
     // Velocity enters as brightness and a constrained pitch interval. Phase
     // changes spectral weight only; it never flings the listener left/right.
-    const motionBase = 116 * Math.pow(2, kineticShape * 0.14);
+    const motionBase = 148;
     this.motionVoices.forEach((voice, index) => {
       setTarget(voice.oscillator.frequency, motionBase * voice.ratio, time, 0.11);
       const phaseWeight = index === 0 ? 0.82 + phaseBrightness * 0.16 : 0.42 + (1 - phaseBrightness) * 0.24;
       setTarget(voice.gain.gain, voice.baseLevel * phaseWeight, time, 0.12);
     });
-    setTarget(this.motionFilter.frequency, 760 + measures.kineticNormalized * 2_780 + phaseBrightness * 360, time, 0.13);
+    setTarget(this.motionFilter.frequency, 620 + measures.kineticNormalized * 2_180 + phaseBrightness * 260, time, 0.13);
     setTarget(
       this.motion.gain,
       this.mix.motion * profile.motion * activity * (0.22 + measures.kineticNormalized * 0.46),
@@ -276,7 +275,7 @@ export class AudioEngine {
     master.connect(context.destination);
 
     const atmosphereVoices = this.makeContinuousVoices(context, atmosphere, [1, 1.25, 1.5, 2], [0.5, 0.22, 0.15, 0.09]);
-    const motionVoices = this.makeContinuousVoices(context, motion, [1, 1.5], [0.34, 0.17]);
+    const motionVoices = this.makeContinuousVoices(context, motion, [1, 1.5], [0.24, 0.1]);
 
     this.context = context;
     this.master = master;

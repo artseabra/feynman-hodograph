@@ -36,7 +36,7 @@ const palettes: Record<ThemeName, ThemePalette> = {
   },
 };
 
-const dockNames = ['playback', 'geometry', 'camera', 'theme', 'sound'] as const;
+const dockNames = ['playback', 'geometry', 'camera', 'sound'] as const;
 type DockName = (typeof dockNames)[number];
 
 function getElement<T extends HTMLElement>(selector: string): T {
@@ -93,11 +93,10 @@ const wedgesValue = getElement<HTMLOutputElement>('#wedges-value');
 const proofToggle = getElement<HTMLButtonElement>('#proof-toggle');
 const proof = getElement<HTMLElement>('#proof');
 const themeToggle = getElement<HTMLButtonElement>('#theme-toggle');
-const lightThemeButton = getElement<HTMLButtonElement>('#theme-light');
-const chalkboardThemeButton = getElement<HTMLButtonElement>('#theme-chalkboard');
 const cameraReset = getElement<HTMLButtonElement>('#camera-reset');
 const soundEnable = getElement<HTMLButtonElement>('#sound-enable');
-const soundMute = getElement<HTMLButtonElement>('#sound-mute');
+const soundStateLabel = getElement<HTMLElement>('#sound-state-label');
+const soundStateIcon = getElement<HTMLElement>('.sound-state-icon');
 const soundLens = getElement<HTMLSelectElement>('#sound-lens');
 
 const audioControls = {
@@ -123,7 +122,7 @@ const state: InstrumentState = {
   playing: !prefersReducedMotion,
   theme: getThemePreference(),
   proofOpen: false,
-  activeDock: 'playback',
+  activeDock: null,
   cameraFocus: 'free',
   audio: {
     enabled: false,
@@ -185,10 +184,6 @@ function applyTheme(theme: ThemeName): void {
   state.theme = theme;
   document.documentElement.dataset.theme = theme;
   getElement<HTMLMetaElement>('meta[name="theme-color"]').content = theme === 'chalkboard' ? '#101815' : '#faf7ef';
-  lightThemeButton.classList.toggle('is-selected', theme === 'light');
-  lightThemeButton.setAttribute('aria-pressed', String(theme === 'light'));
-  chalkboardThemeButton.classList.toggle('is-selected', theme === 'chalkboard');
-  chalkboardThemeButton.setAttribute('aria-pressed', String(theme === 'chalkboard'));
   themeToggle.setAttribute('aria-label', theme === 'light' ? 'Switch to chalkboard theme' : 'Switch to warm paper theme');
   themeToggle.querySelector('span')!.textContent = theme === 'light' ? '◐' : '◑';
   scene?.setPalette(palettes[theme]);
@@ -196,19 +191,27 @@ function applyTheme(theme: ThemeName): void {
   safeStoreTheme(theme);
 }
 
-function activateDock(nextDock: DockName): void {
-  state.activeDock = nextDock;
+function activateDock(nextDock: DockName | null): void {
+  state.activeDock = state.activeDock === nextDock ? null : nextDock;
   document.querySelectorAll<HTMLButtonElement>('[data-dock]').forEach(button => {
-    const active = button.dataset.dock === nextDock;
+    const active = button.dataset.dock === state.activeDock;
     button.classList.toggle('is-active', active);
-    button.setAttribute('aria-selected', String(active));
-    button.tabIndex = active ? 0 : -1;
+    button.setAttribute('aria-expanded', String(active));
   });
   document.querySelectorAll<HTMLElement>('[data-panel]').forEach(panel => {
-    const active = panel.dataset.panel === nextDock;
+    const active = panel.dataset.panel === state.activeDock;
     panel.classList.toggle('is-active', active);
     panel.hidden = !active;
   });
+}
+
+function updateSoundButton(): void {
+  const label = !state.audio.enabled ? 'Enable' : state.audio.muted ? 'Muted' : 'Sound on';
+  soundStateLabel.textContent = label;
+  soundStateIcon.textContent = state.audio.enabled && !state.audio.muted ? '◉' : '◌';
+  soundEnable.classList.toggle('is-active', state.audio.enabled && !state.audio.muted);
+  soundEnable.setAttribute('aria-pressed', String(state.audio.enabled && !state.audio.muted));
+  soundEnable.setAttribute('aria-label', !state.audio.enabled ? 'Enable sound' : state.audio.muted ? 'Unmute sound' : 'Mute sound');
 }
 
 function setProofOpen(open: boolean): void {
@@ -314,26 +317,20 @@ wedgesControl.addEventListener('input', () => {
 
 proofToggle.addEventListener('click', () => setProofOpen(!state.proofOpen));
 themeToggle.addEventListener('click', () => applyTheme(state.theme === 'light' ? 'chalkboard' : 'light'));
-lightThemeButton.addEventListener('click', () => applyTheme('light'));
-chalkboardThemeButton.addEventListener('click', () => applyTheme('chalkboard'));
 cameraReset.addEventListener('click', () => {
   setCameraFocus('free');
   scene?.frameAll();
 });
 
 soundEnable.addEventListener('click', async () => {
-  const enabled = await audio.enable(currentMix());
-  state.audio.enabled = enabled;
-  state.audio.muted = false;
-  soundEnable.textContent = enabled ? 'Sound enabled' : 'Audio unavailable';
-  soundEnable.disabled = enabled;
-  soundMute.disabled = !enabled;
-  soundMute.textContent = 'Mute';
-});
-
-soundMute.addEventListener('click', () => {
-  state.audio.muted = audio.toggleMute();
-  soundMute.textContent = state.audio.muted ? 'Unmute' : 'Mute';
+  if (!audio.isEnabled) {
+    const enabled = await audio.enable(currentMix());
+    state.audio.enabled = enabled;
+    state.audio.muted = false;
+  } else {
+    state.audio.muted = audio.toggleMute();
+  }
+  updateSoundButton();
 });
 
 Object.values(audioControls).forEach(input => input.addEventListener('input', syncAudio));
@@ -366,6 +363,7 @@ function animate(timestamp: number): void {
 }
 
 applyTheme(state.theme);
+updateSoundButton();
 updateSurface();
 resizeScene();
 window.requestAnimationFrame(animate);

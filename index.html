@@ -66,19 +66,16 @@
           </div>
           <p id="stage-instructions" class="stage-instructions">Drag to orbit · Shift-drag or right-drag to pan · ⌥/Ctrl + scroll or pinch to dolly</p>
           <p id="render-status" class="render-status" role="status" hidden></p>
-        </div>
-
-        <section class="dock" aria-label="Hodograph instrument controls">
-          <div class="dock-tabs" role="tablist" aria-label="Instrument control sections">
-            <button class="dock-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="panel-playback" id="tab-playback" data-dock="playback">Playback</button>
-            <button class="dock-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-geometry" id="tab-geometry" data-dock="geometry">Geometry</button>
-            <button class="dock-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-camera" id="tab-camera" data-dock="camera">Camera</button>
-            <button class="dock-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-theme" id="tab-theme" data-dock="theme">Theme</button>
-            <button class="dock-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-sound" id="tab-sound" data-dock="sound">Sound</button>
+          <section class="dock" aria-label="Hodograph instrument controls">
+          <div class="dock-tabs" role="toolbar" aria-label="Instrument control sections">
+            <button class="dock-tab" type="button" aria-controls="panel-playback" aria-expanded="false" id="tab-playback" data-dock="playback">Playback</button>
+            <button class="dock-tab" type="button" aria-controls="panel-geometry" aria-expanded="false" id="tab-geometry" data-dock="geometry">Geometry</button>
+            <button class="dock-tab" type="button" aria-controls="panel-camera" aria-expanded="false" id="tab-camera" data-dock="camera">Camera</button>
+            <button class="dock-tab" type="button" aria-controls="panel-sound" aria-expanded="false" id="tab-sound" data-dock="sound">Sound</button>
           </div>
 
           <div class="dock-panels">
-            <section id="panel-playback" class="dock-panel is-active" role="tabpanel" aria-labelledby="tab-playback" data-panel="playback">
+            <section id="panel-playback" class="dock-panel" role="region" aria-labelledby="tab-playback" data-panel="playback" hidden>
               <div class="control-group control-group-actions">
                 <span class="control-label">Transport</span>
                 <div class="button-row">
@@ -94,7 +91,7 @@
               <p id="tip-equal-time" class="tooltip-copy" hidden>Mean anomaly advances uniformly, so each construction wedge represents the same interval of time.</p>
             </section>
 
-            <section id="panel-geometry" class="dock-panel" role="tabpanel" aria-labelledby="tab-geometry" data-panel="geometry" hidden>
+            <section id="panel-geometry" class="dock-panel" role="region" aria-labelledby="tab-geometry" data-panel="geometry" hidden>
               <div class="control-group control-group-wide">
                 <label for="eccentricity-control">Eccentricity, <i>e</i> <output id="eccentricity-value">0.55</output></label>
                 <input id="eccentricity-control" type="range" min="0" max="0.85" step="0.01" value="0.55" />
@@ -107,7 +104,7 @@
               <p id="tip-offset" class="tooltip-copy" hidden>The hodograph circle’s displacement from the velocity origin grows as <i>e / √(1 − e²)</i> in this normalized construction.</p>
             </section>
 
-            <section id="panel-camera" class="dock-panel" role="tabpanel" aria-labelledby="tab-camera" data-panel="camera" hidden>
+            <section id="panel-camera" class="dock-panel" role="region" aria-labelledby="tab-camera" data-panel="camera" hidden>
               <div class="control-group control-group-actions">
                 <span class="control-label">Canonical views</span>
                 <div class="button-row camera-row">
@@ -129,23 +126,14 @@
               <p class="control-note">Proof is the composed teaching view. Frame all is a higher neutral overview. Orbit with keeps that moving body beneath you; direction, dolly, and local pan remain yours.</p>
             </section>
 
-            <section id="panel-theme" class="dock-panel" role="tabpanel" aria-labelledby="tab-theme" data-panel="theme" hidden>
-              <div class="control-group control-group-actions">
-                <span class="control-label">Surface</span>
-                <div class="button-row">
-                  <button id="theme-light" class="theme-choice is-selected" type="button" aria-pressed="true">Warm paper</button>
-                  <button id="theme-chalkboard" class="theme-choice" type="button" aria-pressed="false">Chalkboard</button>
-                </div>
-              </div>
-              <p class="control-note">Your choice stays local to this browser.</p>
-            </section>
-
-            <section id="panel-sound" class="dock-panel" role="tabpanel" aria-labelledby="tab-sound" data-panel="sound" hidden>
+            <section id="panel-sound" class="dock-panel" role="region" aria-labelledby="tab-sound" data-panel="sound" hidden>
               <div class="control-group control-group-actions sound-actions">
                 <span class="control-label">Keplerian sonification</span>
                 <div class="button-row">
-                  <button id="sound-enable" class="primary-button" type="button">Enable sound</button>
-                  <button id="sound-mute" class="secondary-button" type="button" disabled>Mute</button>
+                  <button id="sound-enable" class="sound-state-button" type="button" aria-label="Enable sound" aria-pressed="false">
+                    <span class="sound-state-icon" aria-hidden="true">◌</span>
+                    <span id="sound-state-label">Enable</span>
+                  </button>
                 </div>
               </div>
               <div class="control-group control-group-wide sound-lens">
@@ -161,15 +149,16 @@
                 <input id="sound-master" type="range" min="0" max="1" step="0.01" value="0.70" />
                 <label for="sound-atmosphere">Potential field <output id="sound-atmosphere-value">74%</output></label>
                 <input id="sound-atmosphere" type="range" min="0" max="1" step="0.01" value="0.74" />
-                <label for="sound-motion">Velocity field <output id="sound-motion-value">48%</output></label>
-                <input id="sound-motion" type="range" min="0" max="1" step="0.01" value="0.48" />
+                <label for="sound-motion">Velocity field <output id="sound-motion-value">0%</output></label>
+                <input id="sound-motion" type="range" min="0" max="1" step="0.01" value="0" />
                 <label for="sound-markers">Wedges &amp; apsides <output id="sound-markers-value">86%</output></label>
                 <input id="sound-markers" type="range" min="0" max="1" step="0.01" value="0.86" />
               </div>
-              <p id="sound-note" class="control-note">Potential shapes the field, velocity shapes brightness, and exact mean-anomaly crossings strike the construction. No continuous hard-panning. Interpretive sonification, not planetary sound.</p>
+              <p id="sound-note" class="control-note">The star–planet potential follows 1/r; field strength follows 1/r². Velocity is optional. Exact mean-anomaly crossings strike the construction. Interpretive sonification, not planetary sound.</p>
             </section>
           </div>
-        </section>
+          </section>
+        </div>
       </section>
 
       <section id="proof" class="proof" aria-labelledby="proof-title" hidden>

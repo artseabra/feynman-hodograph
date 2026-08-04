@@ -56,7 +56,7 @@ export interface InstrumentState {
   playing: boolean;
   theme: ThemeName;
   proofOpen: boolean;
-  activeDock: 'playback' | 'geometry' | 'camera' | 'theme' | 'sound';
+  activeDock: 'playback' | 'geometry' | 'camera' | 'sound' | null;
   cameraFocus: CameraFocus;
   audio: AudioMix;
 }
