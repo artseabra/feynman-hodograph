@@ -47,8 +47,8 @@ describe('Keplerian sonification mapping', () => {
   });
 
   it('changes the mix emphasis for each listening lens without changing the orbital source', () => {
-    expect(sonificationLensProfile('keplerian')).toMatchObject({ atmosphere: 1, motion: 1, markers: 1 });
-    expect(sonificationLensProfile('hodograph').motion).toBeGreaterThan(1);
+    expect(sonificationLensProfile('keplerian')).toMatchObject({ atmosphere: 1, markers: 1, fieldBrightness: 1 });
+    expect(sonificationLensProfile('hodograph').fieldBrightness).toBeGreaterThan(1);
     expect(sonificationLensProfile('construction').markers).toBeGreaterThan(1);
   });
 });

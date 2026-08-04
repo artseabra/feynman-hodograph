@@ -25,12 +25,9 @@ export class AudioEngine {
   private context: AudioContext | null = null;
   private master: GainNode | null = null;
   private atmosphere: GainNode | null = null;
-  private motion: GainNode | null = null;
   private markers: GainNode | null = null;
   private atmosphereFilter: BiquadFilterNode | null = null;
-  private motionFilter: BiquadFilterNode | null = null;
   private atmosphereVoices: ContinuousVoice[] = [];
-  private motionVoices: ContinuousVoice[] = [];
   private enabled = false;
   private muted = false;
   private mix: AudioMix | null = null;
@@ -77,9 +74,7 @@ export class AudioEngine {
       || !this.context
       || !this.mix
       || !this.atmosphere
-      || !this.motion
       || !this.atmosphereFilter
-      || !this.motionFilter
     ) return;
 
     const time = this.context.currentTime;
@@ -87,8 +82,6 @@ export class AudioEngine {
     const profile = sonificationLensProfile(this.mix.lens);
     const activity = playing && !this.muted ? 1 : 0;
     const potentialShape = measures.potentialNormalized - 0.5;
-    const phaseBrightness = 0.5 + 0.5 * Math.cos(measures.hodographAngle);
-
     // The field is a just-intoned stack whose slow colour follows potential.
     // Pitch only moves by a few cents, preserving a stable instrument rather
     // than turning the orbit into a queasy continuous siren.
@@ -102,28 +95,17 @@ export class AudioEngine {
         0.2,
       );
     });
-    setTarget(this.atmosphereFilter.frequency, 330 + measures.gravitationalFieldNormalized * 1_840, time, 0.22);
+    setTarget(
+      this.atmosphereFilter.frequency,
+      330 + measures.gravitationalFieldNormalized * 1_840 * profile.fieldBrightness,
+      time,
+      0.22,
+    );
     setTarget(
       this.atmosphere.gain,
       this.mix.atmosphere * profile.atmosphere * activity * (0.2 + measures.gravitationalFieldNormalized * 0.62),
       time,
       0.18,
-    );
-
-    // Velocity enters as brightness and a constrained pitch interval. Phase
-    // changes spectral weight only; it never flings the listener left/right.
-    const motionBase = 148;
-    this.motionVoices.forEach((voice, index) => {
-      setTarget(voice.oscillator.frequency, motionBase * voice.ratio, time, 0.11);
-      const phaseWeight = index === 0 ? 0.82 + phaseBrightness * 0.16 : 0.42 + (1 - phaseBrightness) * 0.24;
-      setTarget(voice.gain.gain, voice.baseLevel * phaseWeight, time, 0.12);
-    });
-    setTarget(this.motionFilter.frequency, 620 + measures.kineticNormalized * 2_180 + phaseBrightness * 260, time, 0.13);
-    setTarget(
-      this.motion.gain,
-      this.mix.motion * profile.motion * activity * (0.22 + measures.kineticNormalized * 0.46),
-      time,
-      0.1,
     );
   }
 
@@ -170,7 +152,7 @@ export class AudioEngine {
   }
 
   async destroy(): Promise<void> {
-    [...this.atmosphereVoices, ...this.motionVoices].forEach(voice => {
+    this.atmosphereVoices.forEach(voice => {
       try {
         voice.oscillator.stop();
       } catch {
@@ -178,7 +160,6 @@ export class AudioEngine {
       }
     });
     this.atmosphereVoices = [];
-    this.motionVoices = [];
     if (this.context && this.context.state !== 'closed') await this.context.close();
     this.context = null;
     this.enabled = false;
@@ -235,8 +216,6 @@ export class AudioEngine {
     const compressor = context.createDynamicsCompressor();
     const atmosphere = context.createGain();
     const atmosphereFilter = context.createBiquadFilter();
-    const motion = context.createGain();
-    const motionFilter = context.createBiquadFilter();
     const markers = context.createGain();
     const markerDelay = context.createDelay(0.55);
     const markerFeedback = context.createGain();
@@ -252,8 +231,6 @@ export class AudioEngine {
 
     atmosphereFilter.type = 'lowpass';
     atmosphereFilter.Q.setValueAtTime(0.72, context.currentTime);
-    motionFilter.type = 'lowpass';
-    motionFilter.Q.setValueAtTime(1.8, context.currentTime);
     markerDelay.delayTime.setValueAtTime(0.233, context.currentTime);
     markerFeedback.gain.setValueAtTime(0.17, context.currentTime);
     markerEchoFilter.type = 'lowpass';
@@ -262,8 +239,6 @@ export class AudioEngine {
 
     atmosphere.connect(atmosphereFilter);
     atmosphereFilter.connect(compressor);
-    motion.connect(motionFilter);
-    motionFilter.connect(compressor);
     markers.connect(compressor);
     markers.connect(markerDelay);
     markerDelay.connect(markerFeedback);
@@ -275,17 +250,13 @@ export class AudioEngine {
     master.connect(context.destination);
 
     const atmosphereVoices = this.makeContinuousVoices(context, atmosphere, [1, 1.25, 1.5, 2], [0.5, 0.22, 0.15, 0.09]);
-    const motionVoices = this.makeContinuousVoices(context, motion, [1, 1.5], [0.24, 0.1]);
 
     this.context = context;
     this.master = master;
     this.atmosphere = atmosphere;
-    this.motion = motion;
     this.markers = markers;
     this.atmosphereFilter = atmosphereFilter;
-    this.motionFilter = motionFilter;
     this.atmosphereVoices = atmosphereVoices;
-    this.motionVoices = motionVoices;
   }
 
   private makeContinuousVoices(

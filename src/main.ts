@@ -90,8 +90,6 @@ const eccentricityControl = getElement<HTMLInputElement>('#eccentricity-control'
 const eccentricityValue = getElement<HTMLOutputElement>('#eccentricity-value');
 const wedgesControl = getElement<HTMLInputElement>('#wedges-control');
 const wedgesValue = getElement<HTMLOutputElement>('#wedges-value');
-const proofToggle = getElement<HTMLButtonElement>('#proof-toggle');
-const proof = getElement<HTMLElement>('#proof');
 const themeToggle = getElement<HTMLButtonElement>('#theme-toggle');
 const cameraReset = getElement<HTMLButtonElement>('#camera-reset');
 const soundEnable = getElement<HTMLButtonElement>('#sound-enable');
@@ -102,14 +100,12 @@ const soundLens = getElement<HTMLSelectElement>('#sound-lens');
 const audioControls = {
   master: getElement<HTMLInputElement>('#sound-master'),
   atmosphere: getElement<HTMLInputElement>('#sound-atmosphere'),
-  motion: getElement<HTMLInputElement>('#sound-motion'),
   markers: getElement<HTMLInputElement>('#sound-markers'),
 };
 
 const audioValues = {
   master: getElement<HTMLOutputElement>('#sound-master-value'),
   atmosphere: getElement<HTMLOutputElement>('#sound-atmosphere-value'),
-  motion: getElement<HTMLOutputElement>('#sound-motion-value'),
   markers: getElement<HTMLOutputElement>('#sound-markers-value'),
 };
 
@@ -121,7 +117,6 @@ const state: InstrumentState = {
   meanAnomaly: 0,
   playing: !prefersReducedMotion,
   theme: getThemePreference(),
-  proofOpen: false,
   activeDock: null,
   cameraFocus: 'free',
   audio: {
@@ -130,7 +125,6 @@ const state: InstrumentState = {
     lens: soundLens.value as SonificationLens,
     master: Number(audioControls.master.value),
     atmosphere: Number(audioControls.atmosphere.value),
-    motion: Number(audioControls.motion.value),
     markers: Number(audioControls.markers.value),
   },
 };
@@ -157,7 +151,7 @@ function updateControlReadouts(): void {
   wedgesValue.value = String(state.wedges);
   speedValue.value = `${state.speed.toFixed(1)}×`;
   Object.entries(audioValues).forEach(([key, output]) => {
-    const mixKey = key as keyof Pick<AudioMix, 'master' | 'atmosphere' | 'motion' | 'markers'>;
+    const mixKey = key as keyof Pick<AudioMix, 'master' | 'atmosphere' | 'markers'>;
     output.value = percentage(state.audio[mixKey]);
   });
   playToggle.textContent = state.playing ? 'Pause' : 'Play';
@@ -191,6 +185,41 @@ function applyTheme(theme: ThemeName): void {
   safeStoreTheme(theme);
 }
 
+function mountElevenLabsAudioNative(): void {
+  const publicUserId = document
+    .querySelector<HTMLMetaElement>('meta[name="elevenlabs-public-user-id"]')
+    ?.content.trim();
+  const projectId = document
+    .querySelector<HTMLMetaElement>('meta[name="elevenlabs-audio-native-project-id"]')
+    ?.content.trim();
+  if (!publicUserId || !projectId) return;
+
+  const slot = getElement<HTMLElement>('#elevenlabs-audionative-slot');
+  const player = document.createElement('div');
+  player.id = 'elevenlabs-audionative-widget';
+  player.dataset.height = '90';
+  player.dataset.width = '100%';
+  player.dataset.frameborder = 'no';
+  player.dataset.scrolling = 'no';
+  player.dataset.publicuserid = publicUserId;
+  player.dataset.playerurl = 'https://elevenlabs.io/player/index.html';
+  player.dataset.projectid = projectId;
+  const loadingLink = document.createElement('a');
+  loadingLink.href = 'https://elevenlabs.io/text-to-speech';
+  loadingLink.target = '_blank';
+  loadingLink.rel = 'noreferrer';
+  loadingLink.textContent = 'ElevenLabs Audio Native';
+  player.append('Loading the ', loadingLink, ' player…');
+  slot.replaceChildren(player);
+  slot.classList.add('is-mounted');
+
+  const helper = document.createElement('script');
+  helper.src = 'https://elevenlabs.io/player/audioNativeHelper.js';
+  helper.type = 'text/javascript';
+  helper.async = true;
+  document.head.append(helper);
+}
+
 function activateDock(nextDock: DockName | null): void {
   state.activeDock = state.activeDock === nextDock ? null : nextDock;
   document.querySelectorAll<HTMLButtonElement>('[data-dock]').forEach(button => {
@@ -214,14 +243,6 @@ function updateSoundButton(): void {
   soundEnable.setAttribute('aria-label', !state.audio.enabled ? 'Enable sound' : state.audio.muted ? 'Unmute sound' : 'Mute sound');
 }
 
-function setProofOpen(open: boolean): void {
-  state.proofOpen = open;
-  proof.hidden = !open;
-  proofToggle.setAttribute('aria-expanded', String(open));
-  proofToggle.textContent = open ? 'Hide construction' : 'Construction';
-  if (open) requestAnimationFrame(() => proof.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-}
-
 function resizeScene(): void {
   const bounds = stage.getBoundingClientRect();
   scene?.resize(bounds.width, bounds.height);
@@ -237,7 +258,7 @@ function dismissStageGuide(): void {
 
 function syncAudio(): void {
   Object.entries(audioControls).forEach(([key, input]) => {
-    const mixKey = key as keyof Pick<AudioMix, 'master' | 'atmosphere' | 'motion' | 'markers'>;
+    const mixKey = key as keyof Pick<AudioMix, 'master' | 'atmosphere' | 'markers'>;
     state.audio[mixKey] = Number(input.value);
   });
   audio.setMix(currentMix());
@@ -315,7 +336,6 @@ wedgesControl.addEventListener('input', () => {
   updateSurface();
 });
 
-proofToggle.addEventListener('click', () => setProofOpen(!state.proofOpen));
 themeToggle.addEventListener('click', () => applyTheme(state.theme === 'light' ? 'chalkboard' : 'light'));
 cameraReset.addEventListener('click', () => {
   setCameraFocus('free');
@@ -363,6 +383,7 @@ function animate(timestamp: number): void {
 }
 
 applyTheme(state.theme);
+mountElevenLabsAudioNative();
 updateSoundButton();
 updateSurface();
 resizeScene();

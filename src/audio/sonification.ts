@@ -102,20 +102,20 @@ export function markerTuning(crossing: WedgeCrossing, state: OrbitalState): Mark
 
 export interface SonificationLensProfile {
   atmosphere: number;
-  motion: number;
   markers: number;
   markerPitch: number;
+  fieldBrightness: number;
 }
 
 export function sonificationLensProfile(lens: SonificationLens): SonificationLensProfile {
   switch (lens) {
     case 'hodograph':
-      return { atmosphere: 0.74, motion: 1.12, markers: 0.84, markerPitch: Math.pow(2, 2 / 12) };
+      return { atmosphere: 0.74, markers: 0.84, markerPitch: Math.pow(2, 2 / 12), fieldBrightness: 1.2 };
     case 'construction':
-      return { atmosphere: 0.86, motion: 0.7, markers: 1.16, markerPitch: 1 };
+      return { atmosphere: 0.86, markers: 1.16, markerPitch: 1, fieldBrightness: 0.82 };
     case 'keplerian':
     default:
-      return { atmosphere: 1, motion: 1, markers: 1, markerPitch: 1 };
+      return { atmosphere: 1, markers: 1, markerPitch: 1, fieldBrightness: 1 };
   }
 }
 

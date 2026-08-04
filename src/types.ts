@@ -1,7 +1,7 @@
 export type ThemeName = 'light' | 'chalkboard';
 
 export type CameraView = 'proof' | 'front' | 'overhead' | 'side';
-export type CameraFocus = 'free' | 'planet' | 'hodograph';
+export type CameraFocus = 'free' | 'sun' | 'planet' | 'hodograph';
 export type SonificationLens = 'keplerian' | 'hodograph' | 'construction';
 
 export interface Point2 {
@@ -44,7 +44,6 @@ export interface AudioMix {
   lens: SonificationLens;
   master: number;
   atmosphere: number;
-  motion: number;
   markers: number;
 }
 
@@ -55,7 +54,6 @@ export interface InstrumentState {
   meanAnomaly: number;
   playing: boolean;
   theme: ThemeName;
-  proofOpen: boolean;
   activeDock: 'playback' | 'geometry' | 'camera' | 'sound' | null;
   cameraFocus: CameraFocus;
   audio: AudioMix;

@@ -17,9 +17,9 @@ npm test
 npm run build
 ```
 
-The deployment target is a static Vite build (`dist/`). It is live at
-[feynman-hodograph.vercel.app](https://feynman-hodograph.vercel.app), with the
-connected GitHub `main` branch serving as production.
+The deployment target is a static Vite build (`dist/`). The current production
+URL is [feynman-hodograph.vercel.app](https://feynman-hodograph.vercel.app).
+Local changes do not affect it until an intentional GitHub/Vercel publish.
 
 ## Interaction
 
@@ -27,11 +27,12 @@ connected GitHub `main` branch serving as production.
 - Shift-drag or right-drag to pan.
 - Scroll normally to move through the page. Use Option/Alt-scroll (or
   Ctrl-scroll) and pinch to dolly the canvas.
-- Use the Camera dock for canonical proof, front, overhead, and side views.
-- **Orbit with Planet** and **Orbit with Hodograph** are companion cameras:
-  they travel with the selected moving point, while local orbit, pan, and
+- Use the Camera dock for canonical proof, front, literal overhead, and
+  literal side views.
+- **Orbit with Sun**, **Planet**, and **Hodograph** are companion cameras:
+  they pin the selected point beneath the camera while local orbit, pan, and
   dolly remain available. Any canonical view returns to the free camera.
-- Sound is opt-in. The potential field, velocity field, and resonant marks are
+- Sound is opt-in. The continuous potential field and resonant marks are
   derived from the normalized Kepler state; exact equal-time crossings and the
   two apsides trigger events. It is interpretive sonification, not an
   astronomical recording.
@@ -42,8 +43,31 @@ The position state uses the standard elliptic Kepler parameterization
 `x = cos(E) - e`, `y = sqrt(1-e²) sin(E)` with `M = E - e sin(E)`. The velocity
 state traces a circle after the corresponding scaling and offset. The
 interpretive framing follows David and Judith Goodstein's reconstruction in
-*Feynman's Lost Lecture: The Motion of Planets Around the Sun*; the hodograph
-result itself predates Feynman and is associated with Hamilton (1846).
+[*Feynman's Lost Lecture: The Motion of Planets Around the Sun*](https://calteches.library.caltech.edu/3822/).
+Their account explains that the 1964 special lecture survived as a tape and
+sparse notes, was omitted from the final 1965 volume, and was later
+reconstructed from the surviving material. The hodograph result itself
+predates Feynman and is associated with Hamilton (1846).
+
+## Narration and ElevenLabs Audio Native
+
+The ready-to-paste narration is in
+[`narration/elevenlabs-hodograph.md`](narration/elevenlabs-hodograph.md).
+
+For an embedded reader, create an **Audio Native** project in the ElevenLabs
+dashboard, add the production domain to its allowlist, then copy the public
+user ID and project ID into the two blank meta tags in `index.html`:
+
+```html
+<meta name="elevenlabs-public-user-id" content="YOUR_PUBLIC_USER_ID" />
+<meta name="elevenlabs-audio-native-project-id" content="YOUR_PROJECT_ID" />
+```
+
+At runtime, the instrument mounts the official Audio Native player inside the
+story only when both values are present; without them it does not load an
+ElevenLabs script. See the [Audio Native overview](https://elevenlabs.io/docs/eleven-creative/audio-tools/audio-native)
+and [official embed reference](https://elevenlabs.io/docs/eleven-creative/audio-tools/audio-native/react)
+for player setup and generated-project options.
 
 ## Public boundary
 

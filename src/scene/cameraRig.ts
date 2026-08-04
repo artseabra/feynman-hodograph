@@ -3,22 +3,31 @@ import type { CameraView, SceneBounds } from '../types';
 
 const INTENT_DELAY_MS = 90;
 const INTENT_DISTANCE_PX = 4;
+const HALF_PI = Math.PI / 2;
+const MAX_FREE_PITCH = HALF_PI - 0.01;
+const WORLD_UP = new THREE.Vector3(0, 1, 0);
+const TOP_DOWN_UP = new THREE.Vector3(0, 0, -1);
+const BOTTOM_UP_UP = new THREE.Vector3(0, 0, 1);
 
 export function shouldDollyFromWheel(modifiers: Pick<WheelEvent, 'altKey' | 'ctrlKey'>): boolean {
   return modifiers.altKey || modifiers.ctrlKey;
 }
 
-// Each preset answers a different question about the construction: the
-// composed proof, the velocity face, the orbital plan, the orthogonality
-// side, and the neutral complete overview.
+// Each preset answers a different question about the construction. Overhead
+// is genuinely normal to the orbital plane; side is genuinely normal to the
+// world X axis. The oblique proof and overview are deliberately separate.
 const CAMERA_PRESETS: Record<CameraView, { yaw: number; pitch: number }> = {
   proof: { yaw: -0.58, pitch: 0.34 },
   front: { yaw: 0.02, pitch: 0.06 },
-  overhead: { yaw: -0.24, pitch: 1.12 },
-  side: { yaw: 1.46, pitch: 0.16 },
+  overhead: { yaw: 0, pitch: HALF_PI },
+  side: { yaw: HALF_PI, pitch: 0 },
 };
 
 const OVERVIEW_PRESET = { yaw: 0.72, pitch: 0.54 };
+
+export function cameraPresetOrientation(view: CameraView): { yaw: number; pitch: number } {
+  return { ...CAMERA_PRESETS[view] };
+}
 
 export class CameraRig {
   private readonly target = new THREE.Vector3();
@@ -37,15 +46,7 @@ export class CameraRig {
   fit(bounds: SceneBounds, camera: THREE.PerspectiveCamera, aspect: number): void {
     const fovRadians = THREE.MathUtils.degToRad(camera.fov);
     const horizontalFov = 2 * Math.atan(Math.tan(fovRadians / 2) * aspect);
-    const cosPitch = Math.cos(this.pitchGoal);
-    const cameraOffset = new THREE.Vector3(
-      Math.sin(this.yawGoal) * cosPitch,
-      Math.sin(this.pitchGoal),
-      Math.cos(this.yawGoal) * cosPitch,
-    ).normalize();
-    const forward = cameraOffset.clone().negate();
-    const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
-    const up = new THREE.Vector3().crossVectors(right, forward).normalize();
+    const { forward, right, up } = this.basisAt(this.yawGoal, this.pitchGoal);
     const horizontalTangent = Math.tan(horizontalFov / 2);
     const verticalTangent = Math.tan(fovRadians / 2);
     const center = new THREE.Vector3(bounds.center.x, bounds.center.y, bounds.center.z);
@@ -77,7 +78,9 @@ export class CameraRig {
 
   orbit(deltaX: number, deltaY: number): void {
     this.yawGoal -= deltaX * 0.0075;
-    this.pitchGoal = THREE.MathUtils.clamp(this.pitchGoal - deltaY * 0.0065, -1.22, 1.22);
+    // Match the direct-manipulation expectation: dragging down lowers the
+    // view toward the ground rather than lifting it away from the scene.
+    this.pitchGoal = THREE.MathUtils.clamp(this.pitchGoal + deltaY * 0.0065, -MAX_FREE_PITCH, MAX_FREE_PITCH);
   }
 
   pan(deltaX: number, deltaY: number, camera: THREE.PerspectiveCamera): void {
@@ -100,12 +103,12 @@ export class CameraRig {
 
   setView(view: CameraView): void {
     this.releaseFollow();
-    this.setOrientation(CAMERA_PRESETS[view]);
+    this.setOrientation(CAMERA_PRESETS[view], true);
   }
 
   frameAll(): void {
     this.releaseFollow();
-    this.setOrientation(OVERVIEW_PRESET);
+    this.setOrientation(OVERVIEW_PRESET, true);
   }
 
   beginFollow(
@@ -134,9 +137,36 @@ export class CameraRig {
     this.followOffset.set(0, 0, 0);
   }
 
-  private setOrientation({ yaw, pitch }: { yaw: number; pitch: number }): void {
+  private setOrientation({ yaw, pitch }: { yaw: number; pitch: number }, snap = false): void {
     this.yawGoal = yaw;
     this.pitchGoal = pitch;
+    if (snap) {
+      this.yaw = yaw;
+      this.pitch = pitch;
+    }
+  }
+
+  private basisAt(yaw: number, pitch: number): {
+    forward: THREE.Vector3;
+    right: THREE.Vector3;
+    up: THREE.Vector3;
+  } {
+    const cosPitch = Math.cos(pitch);
+    const offset = new THREE.Vector3(
+      Math.sin(yaw) * cosPitch,
+      Math.sin(pitch),
+      Math.cos(yaw) * cosPitch,
+    ).normalize();
+    const forward = offset.clone().negate();
+    // `forward` and world-up are collinear for the exact overhead preset.
+    // Choose an explicit screen-up axis there so projected bounds stay finite
+    // and the camera has a stable, literal top-down orientation.
+    const referenceUp = Math.abs(forward.y) > 0.9999
+      ? (forward.y < 0 ? TOP_DOWN_UP : BOTTOM_UP_UP)
+      : WORLD_UP;
+    const right = new THREE.Vector3().crossVectors(forward, referenceUp).normalize();
+    const up = new THREE.Vector3().crossVectors(right, forward).normalize();
+    return { forward, right, up };
   }
 
   update(camera: THREE.PerspectiveCamera, deltaSeconds: number): void {
@@ -152,6 +182,13 @@ export class CameraRig {
       this.target.y + this.distance * Math.sin(this.pitch),
       this.target.z + this.distance * Math.cos(this.yaw) * cosPitch,
     );
+    // A literal overhead view needs a non-collinear camera-up vector. Without
+    // this, Three.js has to invent a roll at the singularity.
+    if (Math.abs(Math.abs(this.pitch) - HALF_PI) < 0.001) {
+      camera.up.copy(this.pitch >= 0 ? TOP_DOWN_UP : BOTTOM_UP_UP);
+    } else {
+      camera.up.copy(WORLD_UP);
+    }
     camera.lookAt(this.target);
   }
 }

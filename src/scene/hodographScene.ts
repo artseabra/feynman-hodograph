@@ -97,7 +97,6 @@ export class HodographScene {
   private readonly sun: THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
   private readonly hodographPoint: THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
   private readonly hodographCenter: THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
-  private readonly phaseBeacon: THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
   private readonly positionArrow: THREE.ArrowHelper;
   private readonly velocityArrow: THREE.ArrowHelper;
   private readonly phaseBridge: THREE.Line<THREE.BufferGeometry, THREE.LineDashedMaterial>;
@@ -154,22 +153,17 @@ export class HodographScene {
       new THREE.SphereGeometry(0.075, 22, 22),
       new THREE.MeshStandardMaterial({ color: palette.vector, emissive: palette.vector, emissiveIntensity: 0.25, roughness: 0.3 }),
     );
-    this.phaseBeacon = new THREE.Mesh(
-      new THREE.SphereGeometry(0.075, 20, 20),
-      new THREE.MeshStandardMaterial({ color: palette.ink, emissive: palette.ink, emissiveIntensity: 0.25, roughness: 0.25 }),
-    );
     this.positionArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), 1, color(palette.orbit), 0.22, 0.09);
     this.velocityArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), 1, color(palette.vector), 0.2, 0.08);
     this.phaseBridge = new THREE.Line(
       lineGeometry([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()]),
-      new THREE.LineDashedMaterial({ color: palette.ink, dashSize: 0.13, gapSize: 0.08, transparent: true, opacity: 0.75 }),
+      new THREE.LineDashedMaterial({ color: palette.construction, dashSize: 0.13, gapSize: 0.08, transparent: true, opacity: 0.52 }),
     );
     this.live.add(
       this.planet,
       this.sun,
       this.hodographPoint,
       this.hodographCenter,
-      this.phaseBeacon,
       this.positionArrow,
       this.velocityArrow,
       this.phaseBridge,
@@ -201,11 +195,9 @@ export class HodographScene {
     this.hodographPoint.material.color.set(palette.hodograph);
     this.hodographCenter.material.color.set(palette.vector);
     this.hodographCenter.material.emissive.set(palette.vector);
-    this.phaseBeacon.material.color.set(palette.ink);
-    this.phaseBeacon.material.emissive.set(palette.ink);
     this.positionArrow.setColor(color(palette.orbit));
     this.velocityArrow.setColor(color(palette.vector));
-    this.phaseBridge.material.color.set(palette.ink);
+    this.phaseBridge.material.color.set(palette.construction);
   }
 
   setView(view: CameraView): void {
@@ -224,11 +216,17 @@ export class HodographScene {
       this.rig.releaseFollow();
       return;
     }
-    const target = focus === 'planet' ? this.planet.position : this.hodographPoint.position;
+    const target = focus === 'sun'
+      ? this.sun.position
+      : focus === 'planet'
+        ? this.planet.position
+        : this.hodographPoint.position;
     this.rig.beginFollow(
       target,
-      focus === 'planet' ? 4.7 : 4.15,
-      focus === 'planet'
+      focus === 'sun' ? 4.15 : focus === 'planet' ? 4.7 : 4.15,
+      focus === 'sun'
+        ? { yaw: -0.64, pitch: 0.25 }
+        : focus === 'planet'
         ? { yaw: -0.76, pitch: 0.23 }
         : { yaw: 0.96, pitch: 0.17 },
     );
@@ -258,11 +256,11 @@ export class HodographScene {
     this.sun.position.copy(focus);
     this.hodographPoint.position.copy(velocity);
     this.hodographCenter.position.copy(center);
-    this.phaseBeacon.position.copy(bridge[1]).lerp(bridge[2], 0.5);
     this.updateArrow(this.positionArrow, focus, position);
     this.updateArrow(this.velocityArrow, center, velocity);
     this.updateBridge(bridge);
     this.updateActiveConstruction(activeWedgeIndex(state.meanAnomaly, this.parameters.wedges));
+    if (this.cameraFocus === 'sun') this.rig.trackFollow(focus);
     if (this.cameraFocus === 'planet') this.rig.trackFollow(position);
     if (this.cameraFocus === 'hodograph') this.rig.trackFollow(velocity);
     this.rig.update(this.camera, deltaSeconds);

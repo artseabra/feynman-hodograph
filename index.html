@@ -13,6 +13,10 @@
     <meta property="og:site_name" content="Ifthis" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://feynman-hodograph.vercel.app/og-image.png" />
+    <!-- Fill these after creating an ElevenLabs Audio Native project. Leaving
+         them blank keeps the external player script out of every visit. -->
+    <meta name="elevenlabs-public-user-id" content="" />
+    <meta name="elevenlabs-audio-native-project-id" content="" />
     <title>The hodograph — a Feynman instrument</title>
   </head>
   <body>
@@ -23,9 +27,7 @@
           <span>IFTHIS / INSTRUMENT</span>
         </a>
         <div class="masthead-actions">
-          <button id="proof-toggle" class="quiet-button" type="button" aria-controls="proof" aria-expanded="false">
-            Construction
-          </button>
+          <a class="quiet-button" href="#story">The lost lecture</a>
           <button id="theme-toggle" class="icon-button" type="button" aria-label="Switch to chalkboard theme" data-tooltip="Theme">
             <span aria-hidden="true">◐</span>
           </button>
@@ -118,12 +120,13 @@
               <div class="control-group control-group-actions">
                 <span class="control-label">Orbit with</span>
                 <div class="button-row camera-row">
+                  <button class="secondary-button" type="button" data-camera-focus="sun" aria-pressed="false">Sun</button>
                   <button class="secondary-button" type="button" data-camera-focus="planet" aria-pressed="false">Planet</button>
                   <button class="secondary-button" type="button" data-camera-focus="hodograph" aria-pressed="false">Hodograph</button>
                   <button class="secondary-button is-selected" type="button" data-camera-focus="free" aria-pressed="true">Free camera</button>
                 </div>
               </div>
-              <p class="control-note">Proof is the composed teaching view. Frame all is a higher neutral overview. Orbit with keeps that moving body beneath you; direction, dolly, and local pan remain yours.</p>
+              <p class="control-note">Proof is the composed teaching view. Frame all is a higher neutral overview. Sun, Planet, and Hodograph pin the camera target while direction, dolly, and local pan remain yours.</p>
             </section>
 
             <section id="panel-sound" class="dock-panel" role="region" aria-labelledby="tab-sound" data-panel="sound" hidden>
@@ -149,31 +152,54 @@
                 <input id="sound-master" type="range" min="0" max="1" step="0.01" value="0.70" />
                 <label for="sound-atmosphere">Potential field <output id="sound-atmosphere-value">74%</output></label>
                 <input id="sound-atmosphere" type="range" min="0" max="1" step="0.01" value="0.74" />
-                <label for="sound-motion">Velocity field <output id="sound-motion-value">0%</output></label>
-                <input id="sound-motion" type="range" min="0" max="1" step="0.01" value="0" />
                 <label for="sound-markers">Wedges &amp; apsides <output id="sound-markers-value">86%</output></label>
                 <input id="sound-markers" type="range" min="0" max="1" step="0.01" value="0.86" />
               </div>
-              <p id="sound-note" class="control-note">The star–planet potential follows 1/r; field strength follows 1/r². Velocity is optional. Exact mean-anomaly crossings strike the construction. Interpretive sonification, not planetary sound.</p>
+              <p id="sound-note" class="control-note">The continuous field follows 1/r and brightens with 1/r². Exact mean-anomaly crossings and apsides strike the construction. Interpretive sonification, not planetary sound.</p>
             </section>
           </div>
           </section>
         </div>
       </section>
 
-      <section id="proof" class="proof" aria-labelledby="proof-title" hidden>
-        <div class="proof-heading">
-          <p class="eyebrow">THE CONSTRUCTION</p>
-          <h2 id="proof-title">Feynman’s construction, in order</h2>
-        </div>
-        <ol class="proof-steps">
-          <li><span>01</span><p><b>Equal area, equal time.</b> Equal increments of mean anomaly produce equal-time wedges from the focus.</p></li>
-          <li><span>02</span><p><b>One shared phase.</b> Each equal-time wedge and its velocity marker are evaluated at the same mean anomaly, then linked across the two spatial planes.</p></li>
-          <li><span>03</span><p><b>The circle invariant.</b> At every phase, the vector from the hodograph center to velocity has fixed length and is perpendicular to the position vector. Its endpoint therefore traces a circle.</p></li>
-          <li><span>04</span><p><b>Read the offset.</b> Eccentricity displaces the hodograph’s center from the velocity origin.</p></li>
-          <li><span>05</span><p><b>Return to position.</b> The perpendicular relation between the hodograph radius and velocity recovers the conic orbit.</p></li>
+      <section id="story" class="story" aria-labelledby="story-title">
+        <header class="story-heading">
+          <p class="eyebrow">FROM BLACKBOARD TO RECOVERY</p>
+          <h2 id="story-title">A lecture that survived as a voice without its drawings.</h2>
+          <p>Feynman’s planetary-motion lecture was not lost because nobody preserved a recording. It was lost because the proof lived in the conversation between a voice and a blackboard—and the blackboard sequence disappeared from the record.</p>
+        </header>
+
+        <ol class="story-beats">
+          <li>
+            <span>1964 / CALTECH</span>
+            <h3>An extra lecture for freshmen.</h3>
+            <p>In March 1964, Feynman returned to the Caltech freshman class for a special lecture on planetary motion. He set himself a severe constraint: recover Newton’s result using elementary geometry rather than the sophisticated conic machinery Newton had used.</p>
+          </li>
+          <li>
+            <span>1965 / OMITTED</span>
+            <h3>The lecture falls outside the canonical set.</h3>
+            <p>Robert Leighton received Feynman’s handwritten notes and sketches, but this special lecture was not included in the final 1965 volume of <i>The Feynman Lectures on Physics</i>, which centered on quantum mechanics. An audiotape and a few pages of notes remained.</p>
+          </li>
+          <li>
+            <span>1992–94 / RECOVERED</span>
+            <h3>Enough traces to reconstruct an argument.</h3>
+            <p>While clearing Leighton’s office files, archivist Judith Goodstein found the unfinished material. David and Judith Goodstein later worked from the tape, transcript, Feynman’s sparse sketches, and Newton’s diagrams to recover the missing geometric sequence.</p>
+          </li>
         </ol>
-        <p class="source-note">The circle-hodograph result predates Feynman and is associated with Hamilton (1846). Feynman’s elementary geometric presentation was reconstructed by David and Judith Goodstein in <i>Feynman’s Lost Lecture: The Motion of Planets Around the Sun</i>.</p>
+
+        <section class="story-construction" aria-labelledby="construction-title">
+          <div>
+            <p class="eyebrow">WHAT THIS INSTRUMENT RE-OPENS</p>
+            <h3 id="construction-title">Two spaces, one shared instant.</h3>
+          </div>
+          <div class="story-construction-copy">
+            <p>On the horizontal plane, equal increments of mean anomaly make equal-time wedges from the Sun. On the vertical plane, the corresponding velocity changes close into a circle. The dashed bridge is not a physical connection: it marks the same instant in those two mathematical spaces.</p>
+            <p>That is the wager of the lecture. If the velocity construction is circular and displaced, the position orbit has the geometry of a conic—with the Sun at a focus.</p>
+          </div>
+        </section>
+
+        <div id="elevenlabs-audionative-slot" class="audio-native-slot" aria-label="ElevenLabs narration player"></div>
+        <p class="source-note">Historical account adapted from David and Judith Goodstein’s <a href="https://calteches.library.caltech.edu/3822/" target="_blank" rel="noreferrer">Caltech account of <i>Feynman’s Lost Lecture</i></a>. The hodograph circle predates Feynman and is associated with Hamilton (1846). This instrument is a contemporary spatial interpretation, not a reproduction of the original classroom performance.</p>
       </section>
     </main>
     <script type="module" src="/src/main.ts"></script>
