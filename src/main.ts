@@ -43,6 +43,32 @@ const dockNames = ['playback', 'geometry', 'camera', 'sound'] as const;
 const EXPLORE_GUIDE_STORAGE_KEY = 'feynman-hodograph.explore-guide-seen.v2';
 type DockName = (typeof dockNames)[number];
 
+async function syncLocalSourceAvailability(): Promise<void> {
+  const localSourceElements = document.querySelectorAll<HTMLElement>('[data-local-source]');
+  if (localSourceElements.length === 0) return;
+
+  try {
+    const response = await fetch('/sources/Goodstein.pdf', {
+      method: 'HEAD',
+      cache: 'no-store',
+    });
+    const contentType = response.headers.get('content-type') ?? '';
+    if (response.ok && contentType.includes('application/pdf')) {
+      document.documentElement.dataset.localSources = 'available';
+      return;
+    }
+  } catch {
+    // The public build intentionally omits rights-held source reproductions.
+  }
+
+  document.documentElement.dataset.localSources = 'unavailable';
+  localSourceElements.forEach(element => {
+    element.hidden = true;
+  });
+}
+
+void syncLocalSourceAvailability();
+
 function getElement<T extends HTMLElement>(selector: string): T {
   const element = document.querySelector<T>(selector);
   if (!element) throw new Error(`Missing required interface element: ${selector}`);

@@ -5,6 +5,10 @@ position space and its circular velocity-space hodograph. It is a spatial,
 interactive reconstruction for learning and exploration—not a claim to replace
 or reproduce Feynman's original lecture.
 
+This is an independent educational project by Art Seabra / Ifthis. It is not
+affiliated with or endorsed by Caltech, *The Feynman Lectures on Physics*, or
+the Richard P. Feynman fan account.
+
 ## Local development
 
 ```sh
@@ -67,8 +71,14 @@ keyboard-accessible custom player. Its source is
 `public/audio/feynman-lost-lecture-alistair.mp3`; it does not require an
 ElevenLabs account, external player script, or network request.
 
-## Public boundary
+## Open-source and public boundary
 
 The original supplied one-shot HTML is preserved only in the local ignored
 `provenance/` directory. This repository contains the clean instrument source,
-not an archive dump. Copyright is retained; see [LICENSE](LICENSE).
+not an archive dump.
+
+The software, project-authored interface graphics, and project documentation
+are open source under the [MIT License](LICENSE). The narration recording and
+locally held historical source reproductions are not included in that grant;
+see [ASSET_LICENSE.md](ASSET_LICENSE.md). `public/sources/` remains ignored and
+is also excluded from Vercel uploads as a mechanical publication-rights guard.
