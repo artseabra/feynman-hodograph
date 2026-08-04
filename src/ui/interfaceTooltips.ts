@@ -172,6 +172,7 @@ export class InterfaceTooltipController {
   private activeMode: OpenMode | null = null;
   private showTimer: number | null = null;
   private hideTimer: number | null = null;
+  private lastPointerDownAt = -Infinity;
   private pointerStart: { element: HTMLElement; x: number; y: number; moved: boolean } | null = null;
 
   constructor(root: ParentNode = document) {
@@ -243,7 +244,12 @@ export class InterfaceTooltipController {
   };
 
   private readonly pointerDown = (event: PointerEvent): void => {
-    if (event.pointerType !== 'touch' && !window.matchMedia?.('(pointer: coarse)').matches) return;
+    this.lastPointerDownAt = performance.now();
+    if (event.pointerType !== 'touch' && !window.matchMedia?.('(pointer: coarse)').matches) {
+      this.cancelScheduledShow();
+      if (this.active === event.currentTarget) this.hide();
+      return;
+    }
     this.pointerStart = {
       element: event.currentTarget as HTMLElement,
       x: event.clientX,
@@ -272,7 +278,9 @@ export class InterfaceTooltipController {
   };
 
   private readonly focus = (event: FocusEvent): void => {
-    this.show(event.currentTarget as HTMLElement, 'focus');
+    const trigger = event.currentTarget as HTMLElement;
+    if (performance.now() - this.lastPointerDownAt < 800) return;
+    this.show(trigger, 'focus');
   };
 
   private readonly blur = (event: FocusEvent): void => {

@@ -42,7 +42,7 @@ interface RegisteredTarget extends CanvasTooltipTarget {
   hotspot: HTMLButtonElement;
 }
 
-type OpenMode = 'hover' | 'pinned' | 'touch' | 'keyboard';
+type OpenMode = 'hover' | 'touch' | 'keyboard';
 
 const TOOLTIP_COPY: Record<SceneTooltipId, TooltipDefinition> = {
   'orbital-plane': {
@@ -137,10 +137,10 @@ const TRANSITION_MS = 200;
 /**
  * A canvas-native adaptation of Luster Portal's tooltip contract.
  *
- * Fine pointers hover; a precise click pins. Coarse pointers tap to pin and
- * ignore scroll/drag gestures. The shell flips and clamps inside the stage,
- * and one tooltip is active at a time. Unlike the Portal original, this
- * instrument deliberately omits blur, shadow, and glow.
+ * Fine pointers hover without pinning; coarse pointers tap to pin and ignore
+ * scroll/drag gestures. The shell flips and clamps inside the stage, and one
+ * tooltip is active at a time. Unlike the Portal original, this instrument
+ * deliberately omits blur, shadow, and glow.
  */
 export class CanvasTooltipController {
   private readonly raycaster = new THREE.Raycaster();
@@ -281,7 +281,7 @@ export class CanvasTooltipController {
         if (this.activeMode === 'hover') this.hide();
       }
     }
-    if (event.buttons !== 0 || eventIsCoarse(event) || this.activeMode === 'pinned' || this.activeMode === 'touch') return;
+    if (event.buttons !== 0 || eventIsCoarse(event) || this.activeMode === 'touch') return;
     const target = this.pick(event.clientX, event.clientY);
     if (target) {
       if (this.active === target && this.activeMode === 'hover') return;
@@ -300,6 +300,7 @@ export class CanvasTooltipController {
 
   private readonly pointerDown = (event: PointerEvent): void => {
     this.cancelScheduledShow();
+    if (!eventIsCoarse(event) && this.activeMode === 'hover') this.hide();
     this.pointerStart = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
   };
 
@@ -307,17 +308,17 @@ export class CanvasTooltipController {
     const start = this.pointerStart;
     this.pointerStart = null;
     if (!start || start.pointerId !== event.pointerId || start.moved) return;
+    if (!eventIsCoarse(event)) return;
     const target = this.pick(event.clientX, event.clientY);
-    const mode: OpenMode = eventIsCoarse(event) ? 'touch' : 'pinned';
     if (!target) {
-      if (this.activeMode === 'pinned' || this.activeMode === 'touch') this.hide();
+      if (this.activeMode === 'touch') this.hide();
       return;
     }
-    if (this.active === target && (this.activeMode === 'pinned' || this.activeMode === 'touch')) {
+    if (this.active === target && this.activeMode === 'touch') {
       this.hide();
       return;
     }
-    this.show(target, mode);
+    this.show(target, 'touch');
   };
 
   private readonly pointerCancel = (): void => {
@@ -325,7 +326,7 @@ export class CanvasTooltipController {
   };
 
   private readonly documentPointerDown = (event: PointerEvent): void => {
-    if (this.activeMode !== 'pinned' && this.activeMode !== 'touch') return;
+    if (this.activeMode !== 'touch') return;
     if (event.target === this.canvas) return;
     if (event.target instanceof Node && this.hotspotLayer.contains(event.target)) return;
     this.hide();
