@@ -28,13 +28,13 @@
             <span id="nav-narration-icon" aria-hidden="true">▶</span>
             <span id="nav-narration-label" class="sr-only">Play narration</span>
           </button>
-          <button id="construction-layout-toggle" class="icon-button construction-layout-toggle" type="button" aria-label="Show separated position and velocity spaces" aria-pressed="false" data-construction-layout="merged" data-interface-tooltip="construction-layout">
+          <button id="construction-layout-toggle" class="icon-button construction-layout-toggle" type="button" aria-label="Merge position and velocity spaces at the shared origin" aria-pressed="true" data-construction-layout="separated" data-interface-tooltip="construction-layout">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <ellipse class="layout-glyph-position" cx="12" cy="14" rx="7.5" ry="3.5" />
               <circle class="layout-glyph-velocity" cx="12" cy="10" r="5.5" />
               <path class="layout-glyph-origin" d="M12 7.5v9M9.25 12h5.5" />
             </svg>
-            <span id="construction-layout-label" class="sr-only">Merged construction</span>
+            <span id="construction-layout-label" class="sr-only">Separated construction</span>
           </button>
           <a class="icon-button github-source-link" href="https://github.com/artseabra/feynman-hodograph" target="_blank" rel="noreferrer" aria-label="Open the Feynman hodograph source code on GitHub">
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -153,8 +153,8 @@
               <div class="control-group camera-group">
                 <span class="control-label">View</span>
                 <div class="button-row camera-row">
-                  <button class="secondary-button is-selected" type="button" aria-pressed="true" data-camera-view="spatial" data-interface-tooltip="camera-spatial">Spatial</button>
-                  <button class="secondary-button" type="button" aria-pressed="false" data-camera-view="centered" data-interface-tooltip="camera-centered">Centered</button>
+                  <button class="secondary-button" type="button" aria-pressed="false" data-camera-view="spatial" data-interface-tooltip="camera-spatial">Spatial</button>
+                  <button class="secondary-button is-selected" type="button" aria-pressed="true" data-camera-view="centered" data-interface-tooltip="camera-centered">Centered</button>
                 </div>
               </div>
               <div class="control-group camera-group">

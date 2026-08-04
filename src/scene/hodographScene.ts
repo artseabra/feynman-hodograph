@@ -133,10 +133,10 @@ export class HodographScene {
   private readonly phaseBridge: THREE.Line<THREE.BufferGeometry, THREE.LineDashedMaterial>;
   private palette: ThemePalette;
   private parameters: ConstructionParameters;
-  private layout: ConstructionLayout = 'merged';
+  private layout: ConstructionLayout = 'separated';
   private latestState: OrbitalState;
   private bounds: SceneBounds;
-  private cameraView: CameraView | null = 'spatial';
+  private cameraView: CameraView | null = 'centered';
   private cameraFocus: CameraFocus = 'free';
   private lastTimestamp = performance.now();
   private activeWedge = -1;

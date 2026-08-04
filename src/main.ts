@@ -209,7 +209,7 @@ const state: InstrumentState = {
   theme: getThemePreference(),
   activeDock: null,
   ...initialCamera,
-  constructionLayout: 'merged',
+  constructionLayout: 'separated',
   audio: {
     enabled: false,
     muted: false,

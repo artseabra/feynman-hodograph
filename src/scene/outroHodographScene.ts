@@ -1,9 +1,21 @@
 import * as THREE from 'three';
 import type { OrbitalState, Point3, ThemePalette } from '../types';
-import { correspondenceBridge, hodographWorld, orbitWorld } from '../model/embedding';
+import { computeInstrumentBounds } from '../model/bounds';
+import {
+  correspondenceBridge,
+  hodographDisplayScale,
+  hodographGridFrame,
+  hodographWorld,
+  orbitGridFrame,
+  orbitWorld,
+  sceneLayout,
+} from '../model/embedding';
 import { hodographCircle, orbitalState, TAU } from '../model/orbit';
+import { CameraRig } from './cameraRig';
 
 const CURVE_SEGMENTS = 144;
+const OUTRO_LAYOUT = 'separated' as const;
+const OUTRO_WEDGES = 16;
 
 function vector(point: Point3): THREE.Vector3 {
   return new THREE.Vector3(point.x, point.y, point.z);
@@ -39,7 +51,8 @@ function disposeObject(object: THREE.Object3D): void {
 export class OutroHodographScene {
   readonly canvas: HTMLCanvasElement;
   private readonly scene = new THREE.Scene();
-  private readonly camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
+  private readonly camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+  private readonly rig = new CameraRig();
   private readonly renderer: THREE.WebGLRenderer;
   private readonly construction = new THREE.Group();
   private readonly live = new THREE.Group();
@@ -55,10 +68,12 @@ export class OutroHodographScene {
   private readonly velocityVector = dynamicLine(2, this.velocityMaterial);
   private readonly hodographRadius = dynamicLine(2, this.vectorMaterial);
   private readonly bridge = dynamicLine(4, this.bridgeMaterial);
-  private readonly orbitGrid = new THREE.GridHelper(7.2, 14);
-  private readonly velocityGrid = new THREE.GridHelper(5.2, 12);
   private readonly orbitPlaneMaterial = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, transparent: true, opacity: 0.025, depthWrite: false });
   private readonly velocityPlaneMaterial = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, transparent: true, opacity: 0.025, depthWrite: false });
+  private readonly orbitGrid = new THREE.GridHelper(1, 12);
+  private readonly velocityGrid = new THREE.GridHelper(1, 12);
+  private readonly orbitPlane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.orbitPlaneMaterial);
+  private readonly velocityPlane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.velocityPlaneMaterial);
   private readonly planetMaterial = new THREE.MeshStandardMaterial({ roughness: 0.28, metalness: 0.16 });
   private readonly sunMaterial = new THREE.MeshStandardMaterial({ roughness: 0.32, metalness: 0.04 });
   private readonly velocityPointMaterial = new THREE.MeshStandardMaterial({ roughness: 0.24, metalness: 0.18 });
@@ -83,17 +98,10 @@ export class OutroHodographScene {
     this.canvas.setAttribute('aria-hidden', 'true');
     container.prepend(this.canvas);
 
-    const orbitPlane = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 7.2), this.orbitPlaneMaterial);
-    orbitPlane.rotation.x = -Math.PI / 2;
-    orbitPlane.position.y = -0.035;
-    this.orbitGrid.position.y = -0.03;
-
-    const velocityPlane = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 5.2), this.velocityPlaneMaterial);
-    velocityPlane.position.z = -0.035;
+    this.orbitPlane.rotation.x = -Math.PI / 2;
     this.velocityGrid.rotation.x = Math.PI / 2;
-    this.velocityGrid.position.z = -0.03;
 
-    this.construction.add(orbitPlane, this.orbitGrid, velocityPlane, this.velocityGrid, this.orbit, this.hodograph);
+    this.construction.add(this.orbitPlane, this.orbitGrid, this.velocityPlane, this.velocityGrid, this.orbit, this.hodograph);
     this.live.add(
       this.positionRadius,
       this.velocityVector,
@@ -160,19 +168,20 @@ export class OutroHodographScene {
     this.camera.aspect = safeWidth / safeHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(safeWidth, safeHeight, false);
+    if (Number.isFinite(this.eccentricity)) this.refitCamera();
   }
 
   update(state: OrbitalState, timestamp: number): void {
     if (!this.active) return;
     if (Math.abs(state.eccentricity - this.eccentricity) > 1e-6) this.rebuildConstruction(state.eccentricity);
 
-    const position = vector(orbitWorld(state.position, state.eccentricity, 0.12));
-    const focus = vector(orbitWorld({ x: 0, y: 0 }, state.eccentricity, 0.12));
+    const position = vector(orbitWorld(state.position, state.eccentricity, 0.12, OUTRO_LAYOUT));
+    const focus = vector(orbitWorld({ x: 0, y: 0 }, state.eccentricity, 0.12, OUTRO_LAYOUT));
     const circle = hodographCircle(state.eccentricity);
-    const center = vector(hodographWorld(circle.center, state.eccentricity, 0.1));
-    const origin = vector(hodographWorld({ x: 0, y: 0 }, state.eccentricity, 0.1));
-    const velocity = vector(hodographWorld(state.velocity, state.eccentricity, 0.12));
-    const bridgePoints = correspondenceBridge(state).map(vector);
+    const center = vector(hodographWorld(circle.center, state.eccentricity, 0.1, OUTRO_LAYOUT));
+    const origin = vector(hodographWorld({ x: 0, y: 0 }, state.eccentricity, 0.1, OUTRO_LAYOUT));
+    const velocity = vector(hodographWorld(state.velocity, state.eccentricity, 0.12, OUTRO_LAYOUT));
+    const bridgePoints = correspondenceBridge(state, OUTRO_LAYOUT).map(vector);
 
     this.planet.position.copy(position);
     this.sun.position.copy(focus);
@@ -186,10 +195,7 @@ export class OutroHodographScene {
     this.bridge.computeLineDistances();
     this.bridgeMaterial.opacity = 0.62 + Math.sin(timestamp * 0.0022) * 0.1;
 
-    const sweep = Math.sin(timestamp * 0.000085) * 0.09;
-    const azimuth = 0.72 + sweep;
-    this.camera.position.set(Math.cos(azimuth) * 8.3, 5.15, Math.sin(azimuth) * 8.3);
-    this.camera.lookAt(0, 0.05, 0);
+    this.rig.update(this.camera, 0);
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -204,7 +210,7 @@ export class OutroHodographScene {
     this.eccentricity = eccentricity;
     const orbitPoints = Array.from({ length: CURVE_SEGMENTS }, (_, index) => {
       const sample = orbitalState(eccentricity, index / CURVE_SEGMENTS * TAU);
-      return vector(orbitWorld(sample.position, eccentricity, 0.035));
+      return vector(orbitWorld(sample.position, eccentricity, 0.035, OUTRO_LAYOUT));
     });
     const circle = hodographCircle(eccentricity);
     const hodographPoints = Array.from({ length: CURVE_SEGMENTS }, (_, index) => {
@@ -212,12 +218,40 @@ export class OutroHodographScene {
       return vector(hodographWorld({
         x: circle.center.x + circle.radius * Math.cos(angle),
         y: circle.center.y + circle.radius * Math.sin(angle),
-      }, eccentricity, 0.035));
+      }, eccentricity, 0.035, OUTRO_LAYOUT));
     });
 
     this.orbit.geometry.dispose();
     this.orbit.geometry = new THREE.BufferGeometry().setFromPoints(orbitPoints);
     this.hodograph.geometry.dispose();
     this.hodograph.geometry = new THREE.BufferGeometry().setFromPoints(hodographPoints);
+    this.positionConstructionFields(eccentricity);
+    this.refitCamera();
+  }
+
+  private positionConstructionFields(eccentricity: number): void {
+    const orbitFrame = orbitGridFrame(eccentricity);
+    const orbitSize = orbitFrame.extent * 2 * sceneLayout.orbitScale;
+    const orbitGridOrigin = vector(orbitWorld(orbitFrame.center, eccentricity, -0.12, OUTRO_LAYOUT));
+    const orbitPlaneOrigin = vector(orbitWorld(orbitFrame.center, eccentricity, -0.125, OUTRO_LAYOUT));
+    this.orbitGrid.position.copy(orbitGridOrigin);
+    this.orbitGrid.scale.setScalar(orbitSize);
+    this.orbitPlane.position.copy(orbitPlaneOrigin);
+    this.orbitPlane.scale.set(orbitSize, orbitSize, 1);
+
+    const hodographFrame = hodographGridFrame(eccentricity);
+    const hodographSize = hodographFrame.extent * 2 * hodographDisplayScale(eccentricity);
+    const hodographGridOrigin = vector(hodographWorld(hodographFrame.center, eccentricity, -0.14, OUTRO_LAYOUT));
+    const hodographPlaneOrigin = vector(hodographWorld(hodographFrame.center, eccentricity, -0.145, OUTRO_LAYOUT));
+    this.velocityGrid.position.copy(hodographGridOrigin);
+    this.velocityGrid.scale.setScalar(hodographSize);
+    this.velocityPlane.position.copy(hodographPlaneOrigin);
+    this.velocityPlane.scale.set(hodographSize, hodographSize, 1);
+  }
+
+  private refitCamera(): void {
+    const bounds = computeInstrumentBounds(this.eccentricity, OUTRO_WEDGES, OUTRO_LAYOUT);
+    this.rig.setView('centered', bounds, this.camera, this.camera.aspect, bounds.center);
+    this.rig.update(this.camera, 0);
   }
 }

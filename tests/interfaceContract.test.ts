@@ -32,7 +32,9 @@ describe('public instrument contract', () => {
     for (const view of ['spatial', 'centered', 'overhead', 'side']) {
       expect(html.match(new RegExp(`data-camera-view="${view}"`, 'g'))).toHaveLength(1);
     }
-    expect(html).toMatch(/id="construction-layout-toggle"[^>]*data-construction-layout="merged"/);
+    expect(html).toMatch(/id="construction-layout-toggle"[^>]*data-construction-layout="separated"/);
+    expect(html).toMatch(/aria-pressed="true"[^>]*data-camera-view="centered"/);
+    expect(main).toContain("constructionLayout: 'separated'");
     expect(html).not.toContain('view-switcher-popover');
     expect(html).not.toMatch(/data-camera-view="(?:proof|front|overview)"/);
     expect(html).not.toMatch(/>\s*(?:Proof|Front|Frame all)\s*</);
@@ -127,9 +129,12 @@ describe('public instrument contract', () => {
     expect(main).toContain("sceneVisibilityObserver.observe(outroStage)");
     expect(main).toContain('if (outroSceneVisible) outroScene?.update(orbital, timestamp)');
     expect(outroScene).toContain("powerPreference: 'low-power'");
-    expect(outroScene).toContain('correspondenceBridge(state)');
+    expect(outroScene).toContain("const OUTRO_LAYOUT = 'separated' as const");
+    expect(outroScene).toContain("this.rig.setView('centered'");
+    expect(outroScene).toContain('correspondenceBridge(state, OUTRO_LAYOUT)');
     expect(outroScene).toContain('orbitWorld(state.position');
     expect(outroScene).toContain('hodographWorld(state.velocity');
+    expect(outroScene).not.toContain('const sweep =');
   });
 
   it('gives both mobile 3D canvases the complete viewport', () => {

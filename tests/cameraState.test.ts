@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { initialCameraState, reduceCameraState } from '../src/ui/cameraState';
 
 describe('camera state transitions', () => {
-  it('starts in the spatial fixed view', () => {
-    expect(initialCameraState()).toEqual({ cameraView: 'spatial', cameraFocus: 'free' });
+  it('starts in the centered fixed view', () => {
+    expect(initialCameraState()).toEqual({ cameraView: 'centered', cameraFocus: 'free' });
   });
 
   it('selects a preset atomically with free focus', () => {

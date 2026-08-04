@@ -9,7 +9,7 @@ export type CameraStateAction =
 
 export function initialCameraState(): CameraState {
   return {
-    cameraView: 'spatial',
+    cameraView: 'centered',
     cameraFocus: 'free',
   };
 }
