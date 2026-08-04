@@ -8,16 +8,20 @@ const MAX_FREE_PITCH = HALF_PI - 0.01;
 const BASE_FOV = 42;
 const POV_EYE_RADIUS = 0.285;
 const POV_REFERENCE_DISTANCE = 4.15;
-const POV_MIN_FOV = 16;
-const POV_MAX_FOV = 72;
-const POV_MIN_DISTANCE = POV_REFERENCE_DISTANCE * POV_MIN_FOV / BASE_FOV;
-const POV_MAX_DISTANCE = POV_REFERENCE_DISTANCE * POV_MAX_FOV / BASE_FOV;
+// The Sun camera is a near-zero-focal-length observation point: it should
+// hold the surrounding construction in view, not reproduce a long-lens chase
+// shot from a point just above the focus.
+const POV_BASE_FOV = 108;
+const POV_MIN_FOV = 52;
+const POV_MAX_FOV = 130;
+const POV_MIN_DISTANCE = POV_REFERENCE_DISTANCE * POV_MIN_FOV / POV_BASE_FOV;
+const POV_MAX_DISTANCE = POV_REFERENCE_DISTANCE * POV_MAX_FOV / POV_BASE_FOV;
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
 const TOP_DOWN_UP = new THREE.Vector3(0, 0, -1);
 const BOTTOM_UP_UP = new THREE.Vector3(0, 0, 1);
 
-export function shouldDollyFromWheel(modifiers: Pick<WheelEvent, 'altKey' | 'ctrlKey'>): boolean {
-  return modifiers.altKey || modifiers.ctrlKey;
+export function shouldDollyFromWheel(exploring: boolean): boolean {
+  return exploring;
 }
 
 // Each preset answers a different question about the construction. Overhead
@@ -232,7 +236,7 @@ export class CameraRig {
 
     if (this.followMode === 'point-of-view') {
       const fov = THREE.MathUtils.clamp(
-        BASE_FOV * (this.distance / POV_REFERENCE_DISTANCE),
+        POV_BASE_FOV * (this.distance / POV_REFERENCE_DISTANCE),
         POV_MIN_FOV,
         POV_MAX_FOV,
       );
@@ -285,6 +289,7 @@ export class CameraGestureController {
   private readonly pointers = new Map<number, PointerState>();
   private pinchDistance = 0;
   private pinchMidpoint = new THREE.Vector2();
+  private exploring = false;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -292,7 +297,7 @@ export class CameraGestureController {
     private readonly camera: THREE.PerspectiveCamera,
     private readonly onInteraction: () => void,
   ) {
-    canvas.style.touchAction = 'none';
+    canvas.style.touchAction = 'pan-y';
     canvas.addEventListener('pointerdown', this.pointerDown);
     canvas.addEventListener('pointermove', this.pointerMove);
     canvas.addEventListener('pointerup', this.pointerFinish);
@@ -309,6 +314,11 @@ export class CameraGestureController {
     this.canvas.removeEventListener('pointercancel', this.pointerFinish);
     this.canvas.removeEventListener('lostpointercapture', this.pointerFinish);
     this.canvas.removeEventListener('wheel', this.wheel);
+  }
+
+  setExploring(exploring: boolean): void {
+    this.exploring = exploring;
+    this.canvas.style.touchAction = exploring ? 'none' : 'pan-y';
   }
 
   private readonly pointerDown = (event: PointerEvent): void => {
@@ -369,9 +379,9 @@ export class CameraGestureController {
   };
 
   private readonly wheel = (event: WheelEvent): void => {
-    // Ordinary wheel input belongs to the document. This prevents the landing
-    // view from stealing the instinctive first scroll into an accidental zoom.
-    if (!shouldDollyFromWheel(event)) return;
+    // The page owns the first scroll. Once the visitor has intentionally
+    // entered the canvas, the canvas owns plain scroll until they click away.
+    if (!shouldDollyFromWheel(this.exploring)) return;
     event.preventDefault();
     this.rig.dolly(event.deltaY);
     this.onInteraction();
@@ -388,6 +398,7 @@ export class CameraGestureController {
   }
 
   private handlePinch(): void {
+    if (!this.exploring) return;
     const [first, second] = [...this.pointers.values()];
     const nextDistance = Math.hypot(first.lastX - second.lastX, first.lastY - second.lastY);
     const nextMidpoint = new THREE.Vector2((first.lastX + second.lastX) / 2, (first.lastY + second.lastY) / 2);

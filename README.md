@@ -49,25 +49,15 @@ sparse notes, was omitted from the final 1965 volume, and was later
 reconstructed from the surviving material. The hodograph result itself
 predates Feynman and is associated with Hamilton (1846).
 
-## Narration and ElevenLabs Audio Native
+## Narration
 
 The ready-to-paste narration is in
 [`narration/elevenlabs-hodograph.md`](narration/elevenlabs-hodograph.md).
 
-For an embedded reader, create an **Audio Native** project in the ElevenLabs
-dashboard, add the production domain to its allowlist, then copy the public
-user ID and project ID into the two blank meta tags in `index.html`:
-
-```html
-<meta name="elevenlabs-public-user-id" content="YOUR_PUBLIC_USER_ID" />
-<meta name="elevenlabs-audio-native-project-id" content="YOUR_PROJECT_ID" />
-```
-
-At runtime, the instrument mounts the official Audio Native player inside the
-story only when both values are present; without them it does not load an
-ElevenLabs script. See the [Audio Native overview](https://elevenlabs.io/docs/eleven-creative/audio-tools/audio-native)
-and [official embed reference](https://elevenlabs.io/docs/eleven-creative/audio-tools/audio-native/react)
-for player setup and generated-project options.
+The supplied Alistair narration is embedded in the story with a native,
+keyboard-accessible custom player. Its source is
+`public/audio/feynman-lost-lecture-alistair.mp3`; it does not require an
+ElevenLabs account, external player script, or network request.
 
 ## Public boundary
 

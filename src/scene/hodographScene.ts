@@ -217,7 +217,10 @@ export class HodographScene {
       return;
     }
     if (focus === 'sun') {
-      this.rig.beginPointOfView(this.sun.position, this.planet.position);
+      this.rig.beginPointOfView(
+        this.sun.position,
+        new THREE.Vector3(this.bounds.center.x, this.bounds.center.y, this.bounds.center.z),
+      );
       return;
     }
     const target = focus === 'planet' ? this.planet.position : this.hodographPoint.position;
@@ -228,6 +231,10 @@ export class HodographScene {
         ? { yaw: -0.76, pitch: 0.23 }
         : { yaw: 0.96, pitch: 0.17 },
     );
+  }
+
+  setExploring(exploring: boolean): void {
+    this.gestureController.setExploring(exploring);
   }
 
   resize(width: number, height: number): void {

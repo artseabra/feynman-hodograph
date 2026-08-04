@@ -4,12 +4,11 @@ import { CameraRig, cameraPresetOrientation, shouldDollyFromWheel } from '../src
 
 describe('camera wheel ownership', () => {
   it('leaves ordinary entry scrolling to the document', () => {
-    expect(shouldDollyFromWheel({ altKey: false, ctrlKey: false })).toBe(false);
+    expect(shouldDollyFromWheel(false)).toBe(false);
   });
 
-  it('requires an explicit modifier for canvas dolly', () => {
-    expect(shouldDollyFromWheel({ altKey: true, ctrlKey: false })).toBe(true);
-    expect(shouldDollyFromWheel({ altKey: false, ctrlKey: true })).toBe(true);
+  it('gives plain scroll to the canvas only during intentional exploration', () => {
+    expect(shouldDollyFromWheel(true)).toBe(true);
   });
 
   it('keeps the named axial views mathematically literal', () => {
@@ -50,11 +49,11 @@ describe('camera wheel ownership', () => {
     expect(camera.position.x).toBeCloseTo(0.285, 8);
     expect(camera.position.y).toBeCloseTo(0, 8);
     expect(direction.x).toBeCloseTo(1, 8);
-    expect(camera.fov).toBeCloseTo(42, 8);
+    expect(camera.fov).toBeCloseTo(108, 8);
 
     rig.dolly(-2_000);
     for (let index = 0; index < 12; index += 1) rig.update(camera, 0.1);
-    expect(camera.fov).toBeLessThan(42);
-    expect(camera.fov).toBeGreaterThanOrEqual(16);
+    expect(camera.fov).toBeLessThan(108);
+    expect(camera.fov).toBeGreaterThanOrEqual(52);
   });
 });

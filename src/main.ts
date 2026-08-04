@@ -69,6 +69,11 @@ function percentage(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
+function formatClock(seconds: number): string {
+  const wholeSeconds = Math.max(0, Math.floor(Number.isFinite(seconds) ? seconds : 0));
+  return `${Math.floor(wholeSeconds / 60)}:${String(wholeSeconds % 60).padStart(2, '0')}`;
+}
+
 function dockName(value: string | undefined): DockName | null {
   return dockNames.find(candidate => candidate === value) ?? null;
 }
@@ -77,6 +82,7 @@ const stage = getElement<HTMLElement>('#stage');
 const stageShell = getElement<HTMLElement>('#stage-shell');
 const stageGuide = getElement<HTMLElement>('#stage-guide');
 const stageGuideDismiss = getElement<HTMLButtonElement>('#stage-guide-dismiss');
+const stageInstructions = getElement<HTMLElement>('#stage-instructions');
 const radiusReadout = getElement<HTMLElement>('#radius-readout');
 const speedReadout = getElement<HTMLElement>('#speed-readout');
 const offsetReadout = getElement<HTMLElement>('#offset-readout');
@@ -96,6 +102,12 @@ const soundEnable = getElement<HTMLButtonElement>('#sound-enable');
 const soundStateLabel = getElement<HTMLElement>('#sound-state-label');
 const soundStateIcon = getElement<HTMLElement>('.sound-state-icon');
 const soundLens = getElement<HTMLSelectElement>('#sound-lens');
+const narrationAudio = getElement<HTMLAudioElement>('#narration-audio');
+const narrationPlay = getElement<HTMLButtonElement>('#narration-play');
+const narrationPlayIcon = getElement<HTMLElement>('.narration-play-icon');
+const narrationPlayLabel = getElement<HTMLElement>('#narration-play-label');
+const narrationSeek = getElement<HTMLInputElement>('#narration-seek');
+const narrationTime = getElement<HTMLOutputElement>('#narration-time');
 
 const audioControls = {
   master: getElement<HTMLInputElement>('#sound-master'),
@@ -131,6 +143,7 @@ const state: InstrumentState = {
 
 let scene: HodographScene | null = null;
 let fallback: FallbackRenderer | null = null;
+let exploring = false;
 try {
   scene = new HodographScene(stage, { eccentricity: state.eccentricity, wedges: state.wedges }, palettes[state.theme]);
 } catch {
@@ -185,39 +198,47 @@ function applyTheme(theme: ThemeName): void {
   safeStoreTheme(theme);
 }
 
-function mountElevenLabsAudioNative(): void {
-  const publicUserId = document
-    .querySelector<HTMLMetaElement>('meta[name="elevenlabs-public-user-id"]')
-    ?.content.trim();
-  const projectId = document
-    .querySelector<HTMLMetaElement>('meta[name="elevenlabs-audio-native-project-id"]')
-    ?.content.trim();
-  if (!publicUserId || !projectId) return;
+function syncNarrationPlayer(): void {
+  const duration = narrationAudio.duration;
+  const hasDuration = Number.isFinite(duration) && duration > 0;
+  narrationSeek.disabled = !hasDuration;
+  if (hasDuration) {
+    narrationSeek.max = String(duration);
+    narrationSeek.value = String(Math.min(narrationAudio.currentTime, duration));
+  }
+  narrationTime.value = `${formatClock(narrationAudio.currentTime)} / ${formatClock(duration)}`;
+  const playing = !narrationAudio.paused && !narrationAudio.ended;
+  narrationPlayIcon.textContent = playing ? 'Ⅱ' : '▶';
+  narrationPlayLabel.textContent = playing ? 'Pause' : 'Play';
+  narrationPlay.setAttribute('aria-pressed', String(playing));
+}
 
-  const slot = getElement<HTMLElement>('#elevenlabs-audionative-slot');
-  const player = document.createElement('div');
-  player.id = 'elevenlabs-audionative-widget';
-  player.dataset.height = '90';
-  player.dataset.width = '100%';
-  player.dataset.frameborder = 'no';
-  player.dataset.scrolling = 'no';
-  player.dataset.publicuserid = publicUserId;
-  player.dataset.playerurl = 'https://elevenlabs.io/player/index.html';
-  player.dataset.projectid = projectId;
-  const loadingLink = document.createElement('a');
-  loadingLink.href = 'https://elevenlabs.io/text-to-speech';
-  loadingLink.target = '_blank';
-  loadingLink.rel = 'noreferrer';
-  loadingLink.textContent = 'ElevenLabs Audio Native';
-  player.append('Loading the ', loadingLink, ' player…');
-  slot.replaceChildren(player);
-  slot.classList.add('is-mounted');
-
-  const helper = document.createElement('script');
-  helper.src = 'https://elevenlabs.io/player/audioNativeHelper.js';
-  helper.type = 'text/javascript';
-  helper.async = true;
-  document.head.append(helper);
+function setupNarrationPlayer(): void {
+  narrationPlay.addEventListener('click', async () => {
+    if (narrationAudio.paused || narrationAudio.ended) {
+      if (narrationAudio.ended) narrationAudio.currentTime = 0;
+      try {
+        await narrationAudio.play();
+      } catch {
+        // The control remains available if a browser temporarily blocks media.
+      }
+    } else {
+      narrationAudio.pause();
+    }
+    syncNarrationPlayer();
+  });
+  narrationSeek.addEventListener('input', () => {
+    narrationAudio.currentTime = Number(narrationSeek.value);
+    syncNarrationPlayer();
+  });
+  ['loadedmetadata', 'durationchange', 'timeupdate', 'play', 'pause', 'ended'].forEach(eventName => {
+    narrationAudio.addEventListener(eventName, syncNarrationPlayer);
+  });
+  narrationAudio.addEventListener('error', () => {
+    narrationPlay.disabled = true;
+    narrationPlayLabel.textContent = 'Unavailable';
+  });
+  syncNarrationPlayer();
 }
 
 function activateDock(nextDock: DockName | null): void {
@@ -247,6 +268,15 @@ function resizeScene(): void {
   const bounds = stage.getBoundingClientRect();
   scene?.resize(bounds.width, bounds.height);
   fallback?.resize(bounds.width, bounds.height);
+}
+
+function setExploring(nextExploring: boolean): void {
+  exploring = nextExploring;
+  stageShell.dataset.exploring = String(exploring);
+  stageInstructions.textContent = exploring
+    ? 'Exploring · scroll to dolly · click outside for page scroll'
+    : 'Scroll moves the page · click the construction to explore';
+  scene?.setExploring(exploring);
 }
 
 function dismissStageGuide(): void {
@@ -282,9 +312,18 @@ document.querySelectorAll<HTMLButtonElement>('[data-dock]').forEach(button => {
   });
 });
 
-stageGuideDismiss.addEventListener('pointerdown', dismissStageGuide);
-stageGuideDismiss.addEventListener('click', dismissStageGuide);
-stage.addEventListener('hodograph:interact', dismissStageGuide, { once: true });
+stageGuideDismiss.addEventListener('click', () => {
+  setExploring(true);
+  dismissStageGuide();
+});
+stage.addEventListener('pointerdown', () => setExploring(true));
+stage.addEventListener('hodograph:interact', () => {
+  setExploring(true);
+  dismissStageGuide();
+}, { once: true });
+document.addEventListener('pointerdown', event => {
+  if (event.target instanceof Node && !stageShell.contains(event.target)) setExploring(false);
+});
 
 document.querySelectorAll<HTMLButtonElement>('[data-camera-view]').forEach(button => {
   button.addEventListener('click', () => {
@@ -383,7 +422,8 @@ function animate(timestamp: number): void {
 }
 
 applyTheme(state.theme);
-mountElevenLabsAudioNative();
+setExploring(false);
+setupNarrationPlayer();
 updateSoundButton();
 updateSurface();
 resizeScene();
@@ -392,5 +432,6 @@ window.requestAnimationFrame(animate);
 window.addEventListener('pagehide', () => {
   resizeObserver.disconnect();
   scene?.destroy();
+  narrationAudio.pause();
   void audio.destroy();
 }, { once: true });
