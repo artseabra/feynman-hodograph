@@ -98,11 +98,11 @@ export class CameraRig {
   orbit(deltaX: number, deltaY: number): void {
     if (this.followMode === 'point-of-view') {
       // Orbit mode moves a camera around a target; point-of-view mode turns
-      // the eye itself. Horizontal direct-look must follow screen space:
-      // pull right to look right, pull left to look left. Pitch is inverted
-      // relative to the orbit camera for the same reason.
+      // the eye itself. Horizontal direct-look follows screen space: pull
+      // right to look right and pull left to look left. Keep vertical drag
+      // consistent with the rest of this instrument: pull up to tilt down.
       this.yawGoal -= deltaX * 0.0075;
-      this.pitchGoal = THREE.MathUtils.clamp(this.pitchGoal - deltaY * 0.0065, -MAX_FREE_PITCH, MAX_FREE_PITCH);
+      this.pitchGoal = THREE.MathUtils.clamp(this.pitchGoal + deltaY * 0.0065, -MAX_FREE_PITCH, MAX_FREE_PITCH);
       return;
     }
     this.yawGoal -= deltaX * 0.0075;

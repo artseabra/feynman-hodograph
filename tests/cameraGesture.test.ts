@@ -70,4 +70,17 @@ describe('camera wheel ownership', () => {
     // A rightward drag must therefore turn the point-of-view toward +Z.
     expect(camera.getWorldDirection(new THREE.Vector3()).z).toBeGreaterThan(0.4);
   });
+
+  it('keeps Sun POV vertical drag consistent with the orbit camera', () => {
+    const rig = new CameraRig();
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 200);
+    rig.beginPointOfView(new THREE.Vector3(), new THREE.Vector3(3, 0, 0));
+    rig.update(camera, 0.1);
+
+    rig.orbit(0, -100);
+    for (let index = 0; index < 14; index += 1) rig.update(camera, 0.1);
+
+    // Pulling upward tilts down, matching the instrument's orbit controls.
+    expect(camera.getWorldDirection(new THREE.Vector3()).y).toBeLessThan(-0.3);
+  });
 });
