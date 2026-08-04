@@ -5,6 +5,7 @@ import gitIgnore from '../.gitignore?raw';
 import vercelIgnore from '../.vercelignore?raw';
 import html from '../index.html?raw';
 import main from '../src/main.ts?raw';
+import outroScene from '../src/scene/outroHodographScene.ts?raw';
 
 describe('public instrument contract', () => {
   it('keeps the approved eccentricity cap and exact sound defaults', () => {
@@ -75,7 +76,7 @@ describe('public instrument contract', () => {
     expect(html).toContain('id="stage-controls-overlay"');
     expect(html).toContain('Keyboard paths become active when the canvas has focus.');
     expect(html).toContain('https://twitter.com/intent/follow?screen_name=ifthis');
-    expect(html.match(/https:\/\/github\.com\/artseabra\/feynman-hodograph/g)).toHaveLength(2);
+    expect(html.match(/https:\/\/github\.com\/artseabra\/feynman-hodograph/g)).toHaveLength(3);
     expect(html).toContain('Open the Feynman hodograph source code on GitHub');
     expect(html).toContain('Open-source instrument on GitHub');
     expect(html).toContain('founder of Ifthis.');
@@ -111,5 +112,29 @@ describe('public instrument contract', () => {
     expect(html).toContain('1993 / MATCHED');
     expect(html).toContain('1994 / RECONSTRUCTED');
     expect(html).toContain('NOW / TRANSLATED');
+  });
+
+  it('resolves the story with a visibility-gated moving 3D hodograph', () => {
+    expect(html).toMatch(/id="outro-hodograph"[^>]*data-render-cost="visibility-gated-webgl"/);
+    expect(html).toContain('The recovered argument, set back in motion.');
+    expect(html).toContain('Return to the full instrument');
+    expect(html).toContain('Read the open-source construction');
+    const outro = html.match(/<figure id="outro-hodograph"[\s\S]*?<\/figure>/)?.[0] ?? '';
+    expect(outro).toContain('id="outro-stage"');
+    expect(outro).not.toContain('<svg');
+    expect(outro).not.toContain('<canvas');
+    expect(main).toContain("import { OutroHodographScene }");
+    expect(main).toContain("sceneVisibilityObserver.observe(outroStage)");
+    expect(main).toContain('if (outroSceneVisible) outroScene?.update(orbital, timestamp)');
+    expect(outroScene).toContain("powerPreference: 'low-power'");
+    expect(outroScene).toContain('correspondenceBridge(state)');
+    expect(outroScene).toContain('orbitWorld(state.position');
+    expect(outroScene).toContain('hodographWorld(state.velocity');
+  });
+
+  it('gives both mobile 3D canvases the complete viewport', () => {
+    expect(html.match(/data-mobile-canvas="viewport"/g)).toHaveLength(2);
+    expect(html).toMatch(/id="top"[^>]*data-mobile-canvas="viewport"/);
+    expect(html).toMatch(/id="outro-stage"[^>]*data-mobile-canvas="viewport"/);
   });
 });

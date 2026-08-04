@@ -1,11 +1,4 @@
-/*
- * Mobile instrument pass
- *
- * Loaded after main.css. This layer gives the spatial instrument a deliberate
- * phone composition instead of shrinking the desktop surface. It keeps the
- * first stage within the small viewport, moves the story into a calm reading
- * flow, and preserves the project's no-glow / no-blur boundary.
- */
+/* Mobile rule one: the spatial canvas owns the complete first viewport. */
 
 @media (max-width: 760px) {
   html {
@@ -19,20 +12,17 @@
   }
 
   .app-shell {
-    width: min(
-      100% - max(16px, env(safe-area-inset-left)) - max(16px, env(safe-area-inset-right)),
-      720px
-    );
+    width: 100%;
     min-height: 0;
-    padding-top: max(8px, env(safe-area-inset-top));
+    padding: 0;
   }
 
   .masthead {
-    top: calc(max(8px, env(safe-area-inset-top)) + 10px);
-    right: 10px;
-    left: 10px;
-    min-height: 44px;
-    gap: 10px;
+    top: calc(max(8px, env(safe-area-inset-top)) + 4px);
+    right: max(10px, env(safe-area-inset-right));
+    left: max(10px, env(safe-area-inset-left));
+    min-height: 40px;
+    gap: 7px;
   }
 
   .masthead-actions {
@@ -40,31 +30,31 @@
   }
 
   .wordmark {
-    min-height: 44px;
-    gap: 8px;
-    padding: 6px 10px 6px 7px;
-    font-size: 9px;
+    min-height: 40px;
+    gap: 7px;
+    padding: 5px 9px 5px 6px;
+    font-size: 8px;
     letter-spacing: 0.085em;
   }
 
   .wordmark-mark {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
   }
 
   .icon-button {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
   }
 
   .instrument {
-    display: grid;
-    height: min(60svh, 560px);
-    min-height: 0;
-    grid-template-rows: auto minmax(0, 1fr);
+    display: block;
+    width: 100%;
+    height: 100dvh;
+    min-height: 100svh;
     overflow: hidden;
-    border: 1px solid var(--rule-bright);
-    border-radius: 14px;
+    border: 0;
+    border-radius: 0;
     padding: 0;
     background:
       linear-gradient(150deg, color-mix(in srgb, var(--paper-strong) 88%, transparent), color-mix(in srgb, var(--paper) 84%, transparent)),
@@ -73,26 +63,27 @@
   }
 
   .instrument-heading {
-    position: relative;
-    top: auto;
-    right: auto;
-    left: auto;
+    position: absolute;
+    z-index: 4;
+    top: calc(max(8px, env(safe-area-inset-top)) + 62px);
+    right: max(16px, env(safe-area-inset-right));
+    left: max(16px, env(safe-area-inset-left));
     grid-template-columns: minmax(0, 1fr);
-    gap: 7px;
-    padding: calc(max(8px, env(safe-area-inset-top)) + 66px) 14px 10px;
+    gap: 5px;
+    padding: 0;
   }
 
   .instrument-heading .eyebrow {
-    max-width: 48ch;
-    margin-bottom: 7px;
-    font-size: clamp(7px, 2.15vw, 9px);
+    max-width: 45ch;
+    margin-bottom: 4px;
+    font-size: clamp(7px, 1.95vw, 8px);
     line-height: 1.35;
     letter-spacing: 0.09em;
   }
 
   h1 {
-    font-size: clamp(36px, 11.7vw, 52px);
-    line-height: 0.9;
+    font-size: clamp(38px, 11.5vw, 50px);
+    line-height: 0.88;
     letter-spacing: -0.055em;
     white-space: nowrap;
   }
@@ -104,16 +95,19 @@
   }
 
   .dek {
-    max-width: 37ch;
+    max-width: 34ch;
     margin: 0;
-    font-size: clamp(11px, 3.25vw, 13px);
+    font-size: clamp(11px, 3vw, 13px);
     line-height: 1.38;
     text-wrap: pretty;
   }
 
   .stage-shell {
-    height: auto;
-    min-height: 0;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
     border: 0;
     border-radius: 0;
     background: transparent;
@@ -121,16 +115,16 @@
   }
 
   .stage-hud {
-    top: 9px;
+    top: calc(max(8px, env(safe-area-inset-top)) + 202px);
     gap: 3px;
   }
 
   .stage-hud-left {
-    left: 13px;
+    left: max(14px, env(safe-area-inset-left));
   }
 
   .stage-hud-right {
-    right: 13px;
+    right: max(14px, env(safe-area-inset-right));
   }
 
   .stage-hud strong {
@@ -150,9 +144,9 @@
   }
 
   .stage-telemetry {
-    right: 13px;
-    bottom: calc(116px + env(safe-area-inset-bottom));
-    left: 13px;
+    right: max(14px, env(safe-area-inset-right));
+    bottom: calc(122px + env(safe-area-inset-bottom));
+    left: max(14px, env(safe-area-inset-left));
     gap: 4px 10px;
     font-size: 9px;
     line-height: 1.2;
@@ -164,8 +158,8 @@
 
   .stage-controls-toggle {
     top: auto;
-    bottom: calc(112px + env(safe-area-inset-bottom));
-    left: 12px;
+    bottom: calc(66px + env(safe-area-inset-bottom));
+    left: max(12px, env(safe-area-inset-left));
     width: 36px;
     height: 36px;
   }
@@ -269,11 +263,11 @@
   }
 
   .story-threshold {
-    right: 12px;
-    bottom: calc(57px + env(safe-area-inset-bottom));
-    left: 12px;
-    width: auto;
-    max-width: none;
+    right: max(12px, env(safe-area-inset-right));
+    bottom: calc(64px + env(safe-area-inset-bottom));
+    left: auto;
+    width: min(190px, calc(100% - 74px));
+    max-width: 190px;
     min-height: 44px;
     justify-content: space-between;
     gap: 10px;
@@ -281,9 +275,7 @@
   }
 
   .story-threshold-kicker {
-    display: block;
-    flex: 0 0 auto;
-    font-size: 7px;
+    display: none;
   }
 
   .story-threshold-title {
@@ -301,7 +293,7 @@
   }
 
   .dock {
-    bottom: calc(8px + env(safe-area-inset-bottom));
+    bottom: calc(10px + env(safe-area-inset-bottom));
     width: auto;
     max-width: calc(100% - 20px);
   }
@@ -518,6 +510,54 @@
     text-wrap: pretty;
   }
 
+  .story-outro {
+    padding-bottom: 32px;
+  }
+
+  .story-outro-instrument {
+    width: 100vw;
+    margin-top: 24px;
+    margin-left: calc(50% - 50vw);
+  }
+
+  .story-outro-stage {
+    height: 100dvh;
+    min-height: 100svh;
+  }
+
+  .story-outro-stage-label {
+    top: max(18px, env(safe-area-inset-top));
+  }
+
+  .story-outro-stage-label-position {
+    left: max(14px, env(safe-area-inset-left));
+  }
+
+  .story-outro-stage-label-velocity {
+    right: max(14px, env(safe-area-inset-right));
+  }
+
+  .story-outro-stage-key {
+    right: max(14px, env(safe-area-inset-right));
+    bottom: max(16px, env(safe-area-inset-bottom));
+  }
+
+  .story-outro-caption {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 9px;
+    padding: 22px max(18px, env(safe-area-inset-right)) 22px max(18px, env(safe-area-inset-left));
+  }
+
+  .story-outro-caption h4 {
+    font-size: 22px;
+  }
+
+  .story-outro-actions {
+    display: grid;
+    justify-items: start;
+    padding: 0 max(18px, env(safe-area-inset-right)) 24px max(18px, env(safe-area-inset-left));
+  }
+
   .narration-player-copy > p {
     line-height: 1.5;
   }
@@ -623,7 +663,7 @@
 
 @media (max-width: 359px) {
   .app-shell {
-    width: calc(100% - 12px - env(safe-area-inset-left) - env(safe-area-inset-right));
+    width: 100%;
   }
 
   .masthead {
@@ -641,8 +681,9 @@
   }
 
   .instrument-heading {
-    padding-right: 11px;
-    padding-left: 11px;
+    top: calc(max(8px, env(safe-area-inset-top)) + 58px);
+    right: max(12px, env(safe-area-inset-right));
+    left: max(12px, env(safe-area-inset-left));
   }
 
   h1 {
@@ -655,7 +696,7 @@
   }
 
   .stage-hud {
-    top: 8px;
+    top: calc(max(8px, env(safe-area-inset-top)) + 186px);
   }
 
   .stage-hud-left {
@@ -689,8 +730,8 @@
    a real, scrollable story immediately after the stage. */
 @media (orientation: landscape) and (max-height: 560px) and (max-width: 960px) {
   .app-shell {
-    width: calc(100% - max(12px, env(safe-area-inset-left)) - max(12px, env(safe-area-inset-right)));
-    padding-top: max(6px, env(safe-area-inset-top));
+    width: 100%;
+    padding: 0;
   }
 
   .masthead {
@@ -700,10 +741,10 @@
   }
 
   .instrument {
-    height: calc(100svh - max(6px, env(safe-area-inset-top)));
-    min-height: 320px;
+    height: 100dvh;
+    min-height: 100svh;
     grid-template-rows: minmax(0, 1fr);
-    overflow: visible;
+    overflow: hidden;
     border: 0;
     border-radius: 0;
     background: transparent;
@@ -711,15 +752,28 @@
   }
 
   .stage-shell {
-    height: auto;
-    min-height: 0;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
     overflow: hidden;
-    border: 1px solid var(--rule-bright);
-    border-radius: 14px;
+    border: 0;
+    border-radius: 0;
     background:
       linear-gradient(150deg, color-mix(in srgb, var(--paper-strong) 88%, transparent), color-mix(in srgb, var(--paper) 84%, transparent)),
       var(--paper-strong);
     isolation: isolate;
+  }
+
+  .story-outro-instrument {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+  }
+
+  .story-outro-stage {
+    height: 100dvh;
+    min-height: 100svh;
   }
 
   .instrument-heading {

@@ -4,6 +4,7 @@ import { AudioEngine } from './audio/audioEngine';
 import { crossedApsisEvents, crossedWedgeEvents, hodographCircle, orbitalState, TAU } from './model/orbit';
 import { FallbackRenderer } from './scene/fallback';
 import { HodographScene } from './scene/hodographScene';
+import { OutroHodographScene } from './scene/outroHodographScene';
 import type { AudioMix, CameraFocus, CameraView, ConstructionLayout, InstrumentState, ThemeName, ThemePalette } from './types';
 import { initialCameraState, reduceCameraState } from './ui/cameraState';
 import { InterfaceTooltipController } from './ui/interfaceTooltips';
@@ -173,6 +174,7 @@ const narrationTime = getElement<HTMLOutputElement>('#narration-time');
 const narrationVolume = getElement<HTMLInputElement>('#narration-volume');
 const narrationVolumeValue = getElement<HTMLOutputElement>('#narration-volume-value');
 const storySection = getElement<HTMLElement>('#story');
+const outroStage = getElement<HTMLElement>('#outro-stage');
 const interfaceTooltips = new InterfaceTooltipController();
 
 if (hasSeenExploreGuide()) {
@@ -220,7 +222,10 @@ const state: InstrumentState = {
 
 let scene: HodographScene | null = null;
 let fallback: FallbackRenderer | null = null;
+let outroScene: OutroHodographScene | null = null;
 let exploring = false;
+let mainSceneVisible = true;
+let outroSceneVisible = false;
 let cameraFramingHudTimer: number | undefined;
 try {
   scene = new HodographScene(stage, { eccentricity: state.eccentricity, wedges: state.wedges }, palettes[state.theme]);
@@ -228,6 +233,11 @@ try {
   fallback = new FallbackRenderer(stage, state.eccentricity, state.wedges, palettes[state.theme]);
   renderStatus.hidden = false;
   renderStatus.textContent = 'WebGL is unavailable here. The live 2D construction remains available.';
+}
+try {
+  outroScene = new OutroHodographScene(outroStage, palettes[state.theme]);
+} catch {
+  outroStage.dataset.renderStatus = 'unavailable';
 }
 
 const audio = new AudioEngine();
@@ -273,6 +283,7 @@ function applyTheme(theme: ThemeName): void {
   themeToggle.querySelector('span')!.textContent = theme === 'light' ? '◐' : '◑';
   scene?.setPalette(palettes[theme]);
   fallback?.setPalette(palettes[theme]);
+  outroScene?.setPalette(palettes[theme]);
   safeStoreTheme(theme);
 }
 
@@ -373,6 +384,8 @@ function resizeScene(): void {
   const bounds = stage.getBoundingClientRect();
   scene?.resize(bounds.width, bounds.height);
   fallback?.resize(bounds.width, bounds.height);
+  const outroBounds = outroStage.getBoundingClientRect();
+  outroScene?.resize(outroBounds.width, outroBounds.height);
 }
 
 function setExploring(nextExploring: boolean): void {
@@ -655,6 +668,28 @@ Object.values(audioControls).forEach(input => input.addEventListener('input', sy
 
 const resizeObserver = new ResizeObserver(resizeScene);
 resizeObserver.observe(stageShell);
+resizeObserver.observe(outroStage);
+
+const sceneVisibilityObserver = typeof IntersectionObserver === 'undefined'
+  ? null
+  : new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.target === stageShell) mainSceneVisible = entry.isIntersecting;
+      if (entry.target === outroStage) {
+        outroSceneVisible = entry.isIntersecting;
+        outroScene?.setActive(outroSceneVisible);
+      }
+    });
+  }, { rootMargin: '160px 0px', threshold: 0.01 });
+
+if (sceneVisibilityObserver) {
+  sceneVisibilityObserver.observe(stageShell);
+  sceneVisibilityObserver.observe(outroStage);
+} else {
+  mainSceneVisible = true;
+  outroSceneVisible = true;
+  outroScene?.setActive(true);
+}
 
 function animate(timestamp: number): void {
   const deltaSeconds = Math.min(0.12, Math.max(0, (timestamp - lastTimestamp) / 1000));
@@ -670,8 +705,11 @@ function animate(timestamp: number): void {
       .forEach(event => audio.triggerApsis(event.kind, orbitalState(state.eccentricity, event.meanAnomaly)));
   }
   audio.update(orbital, state.playing);
-  scene?.update(orbital, timestamp);
-  fallback?.render(orbital);
+  if (mainSceneVisible) {
+    scene?.update(orbital, timestamp);
+    fallback?.render(orbital);
+  }
+  if (outroSceneVisible) outroScene?.update(orbital, timestamp);
   updateReadouts();
   window.requestAnimationFrame(animate);
 }
@@ -690,7 +728,9 @@ window.requestAnimationFrame(animate);
 window.addEventListener('pagehide', () => {
   if (cameraFramingHudTimer !== undefined) window.clearTimeout(cameraFramingHudTimer);
   resizeObserver.disconnect();
+  sceneVisibilityObserver?.disconnect();
   scene?.destroy();
+  outroScene?.destroy();
   narrationAudio.pause();
   interfaceTooltips.destroy();
   void audio.destroy();
