@@ -32,7 +32,7 @@ interface TooltipDefinition {
 
 type OpenMode = 'hover' | 'focus' | 'touch';
 
-const HOVER_DELAY_MS = 200;
+const HOVER_DELAY_MS = 600;
 const TRANSITION_MS = 200;
 
 const TOOLTIP_COPY: Record<InterfaceTooltipId, TooltipDefinition> = {

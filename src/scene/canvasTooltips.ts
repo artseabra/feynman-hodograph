@@ -131,7 +131,7 @@ function eventIsCoarse(event: PointerEvent): boolean {
   return event.pointerType === 'touch' || window.matchMedia?.('(pointer: coarse)').matches === true;
 }
 
-const HOVER_DELAY_MS = 200;
+const HOVER_DELAY_MS = 600;
 const TRANSITION_MS = 200;
 
 /**
