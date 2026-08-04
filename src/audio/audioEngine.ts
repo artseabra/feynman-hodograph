@@ -1,6 +1,6 @@
 import { type ApsisCrossing, type WedgeCrossing } from '../model/orbit';
 import type { AudioMix, OrbitalState } from '../types';
-import { apsisTuning, gravityFrame, hodographFrame, markerTuning } from './sonification';
+import { apsisTuning, gravityFrame, hodographFrame, wedgeTexture } from './sonification';
 
 interface ContinuousVoice {
   oscillator: OscillatorNode;
@@ -46,11 +46,11 @@ function impulseResponse(context: AudioContext): AudioBuffer {
   return buffer;
 }
 
-function transientNoise(context: AudioContext, durationSeconds: number): AudioBuffer {
+function transientNoise(context: AudioContext, durationSeconds: number, seed = Math.round(durationSeconds * 1_000_003)): AudioBuffer {
   const length = Math.max(1, Math.floor(context.sampleRate * durationSeconds));
   const buffer = context.createBuffer(1, length, context.sampleRate);
   const data = buffer.getChannelData(0);
-  const random = deterministicNoise(Math.round(durationSeconds * 1_000_003));
+  const random = deterministicNoise(seed);
   for (let index = 0; index < length; index += 1) {
     data[index] = random() * Math.pow(1 - index / length, 3.1);
   }
@@ -62,9 +62,9 @@ function transientNoise(context: AudioContext, durationSeconds: number): AudioBu
  *
  * The graph has deliberately separate voices: normalized 1/r² raises and
  * opens the gravity bed; the hodograph rotates through stationary resonators;
- * and exact construction boundaries make short, audible marks whose decay
- * also reads potential 1/r. No stem is driven by render-frame frequency or
- * treated as an engine imitation.
+ * exact construction boundaries make filtered-noise grains while the two
+ * apsides remain tonal landmarks. No stem is driven by render-frame frequency
+ * or treated as an engine imitation.
  */
 export class AudioEngine {
   private context: AudioContext | null = null;
@@ -146,8 +146,15 @@ export class AudioEngine {
 
   triggerWedge(crossing: WedgeCrossing, state: OrbitalState): void {
     if (!this.enabled || this.muted || !this.context || !this.mix) return;
-    const tuning = markerTuning(crossing, state);
-    this.strike(this.reserveMarkerTime(), tuning.frequency, tuning.overtone, tuning.intensity * 0.24, tuning.duration);
+    const texture = wedgeTexture(crossing, state);
+    this.grain(
+      this.reserveMarkerTime(),
+      texture.centerFrequency,
+      texture.resonance,
+      texture.intensity * 0.4,
+      texture.duration,
+      texture.seed,
+    );
   }
 
   triggerApsis(kind: ApsisCrossing['kind'], state: OrbitalState): void {
@@ -184,6 +191,41 @@ export class AudioEngine {
     return time;
   }
 
+  private grain(
+    time: number,
+    centerFrequency: number,
+    resonance: number,
+    amplitude: number,
+    duration: number,
+    seed: number,
+  ): void {
+    if (!this.context || !this.markers) return;
+    const context = this.context;
+    const noise = context.createBufferSource();
+    const highpass = context.createBiquadFilter();
+    const bandpass = context.createBiquadFilter();
+    const envelope = context.createGain();
+
+    noise.buffer = transientNoise(context, duration + 0.024, seed);
+    highpass.type = 'highpass';
+    highpass.frequency.setValueAtTime(170, time);
+    highpass.Q.setValueAtTime(0.38, time);
+    bandpass.type = 'bandpass';
+    bandpass.frequency.setValueAtTime(centerFrequency, time);
+    bandpass.Q.setValueAtTime(resonance, time);
+
+    envelope.gain.setValueAtTime(0.0001, time);
+    envelope.gain.exponentialRampToValueAtTime(Math.max(0.0002, amplitude), time + 0.0035);
+    envelope.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+
+    noise.connect(highpass);
+    highpass.connect(bandpass);
+    bandpass.connect(envelope);
+    envelope.connect(this.markers);
+    noise.start(time);
+    noise.stop(time + duration + 0.026);
+  }
+
   private strike(
     time: number,
     frequency: number,
@@ -210,7 +252,7 @@ export class AudioEngine {
     overtone.type = 'sine';
     overtone.frequency.setValueAtTime(frequency * overtoneRatio, time);
     overtoneGain.gain.setValueAtTime(0.28, time);
-    noise.buffer = transientNoise(context, 0.032);
+    noise.buffer = transientNoise(context, 0.032, Math.round(frequency * 1_009));
     noiseFilter.type = 'highpass';
     noiseFilter.frequency.setValueAtTime(Math.min(6_200, frequency * 3.2), time);
 

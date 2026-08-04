@@ -112,22 +112,42 @@ export interface MarkerTuning {
   duration: number;
 }
 
-const HODOGRAPH_SCALE = [0, 2, 3, 5, 7, 9, 10, 12] as const;
+export interface WedgeTexture {
+  centerFrequency: number;
+  resonance: number;
+  intensity: number;
+  duration: number;
+  seed: number;
+}
 
 /**
- * Equal-time boundaries receive pitches drawn from the angle around the
- * hodograph circle. The cycle is therefore spatially closed: a full circuit
- * returns to its opening pitch without an arbitrary index-based sequence.
+ * Equal-time boundaries are non-tonal grains, not notes. Their spectral colour
+ * follows a smooth, closed path around the hodograph circle; proximity sets
+ * the grain's length and velocity sets its weight. The construction therefore
+ * has an audible clock without adding another melody to the continuous fields.
  */
-export function markerTuning(_crossing: WedgeCrossing, state: OrbitalState): MarkerTuning {
+export function wedgeTexture(crossing: WedgeCrossing, state: OrbitalState): WedgeTexture {
   const measures = orbitalMeasures(state);
-  const step = Math.min(HODOGRAPH_SCALE.length - 1, Math.floor(measures.hodographAngle / TAU * HODOGRAPH_SCALE.length));
-  const frequency = 293.6648 * Math.pow(2, HODOGRAPH_SCALE[step] / 12);
+  const angle = measures.hodographAngle;
+  const spectralOrbit = clamp(
+    0.5
+      + 0.27 * Math.sin(angle)
+      + 0.14 * Math.sin(angle * 2 + Math.PI / 3)
+      + 0.07 * Math.sin(angle * 3 - Math.PI / 5),
+    0,
+    1,
+  );
+  const seed = (
+    Math.imul(crossing.index + 1, 0x9e37_79b1)
+    ^ Math.imul(crossing.wedgeCount, 0x85eb_ca77)
+  ) >>> 0;
+
   return {
-    frequency: clamp(frequency, 220, 880),
-    overtone: 2 + (measures.kineticNormalized > 0.64 ? 0.01 : -0.01),
-    intensity: 0.64 + measures.kineticNormalized * 0.36,
-    duration: 0.2 + (1 - measures.potentialNormalized) * 0.18,
+    centerFrequency: 560 + spectralOrbit * 1_240,
+    resonance: 0.62 + (1 - measures.potentialNormalized) * 0.78,
+    intensity: 0.66 + measures.kineticNormalized * 0.34,
+    duration: 0.052 + (1 - measures.potentialNormalized) * 0.052,
+    seed,
   };
 }
 

@@ -5,6 +5,7 @@ import { crossedApsisEvents, crossedWedgeEvents, hodographCircle, orbitalState, 
 import { FallbackRenderer } from './scene/fallback';
 import { HodographScene } from './scene/hodographScene';
 import type { AudioMix, CameraFocus, CameraView, InstrumentState, ThemeName, ThemePalette } from './types';
+import { InterfaceTooltipController } from './ui/interfaceTooltips';
 
 const palettes: Record<ThemeName, ThemePalette> = {
   light: {
@@ -115,6 +116,9 @@ const eccentricityValue = getElement<HTMLOutputElement>('#eccentricity-value');
 const wedgesControl = getElement<HTMLInputElement>('#wedges-control');
 const wedgesValue = getElement<HTMLOutputElement>('#wedges-value');
 const themeToggle = getElement<HTMLButtonElement>('#theme-toggle');
+const navNarration = getElement<HTMLButtonElement>('#nav-narration');
+const navNarrationIcon = getElement<HTMLElement>('#nav-narration-icon');
+const navNarrationLabel = getElement<HTMLElement>('#nav-narration-label');
 const cameraReset = getElement<HTMLButtonElement>('#camera-reset');
 const soundEnable = getElement<HTMLButtonElement>('#sound-enable');
 const soundStateLabel = getElement<HTMLElement>('#sound-state-label');
@@ -125,6 +129,8 @@ const narrationPlayIcon = getElement<HTMLElement>('.narration-play-icon');
 const narrationPlayLabel = getElement<HTMLElement>('#narration-play-label');
 const narrationSeek = getElement<HTMLInputElement>('#narration-seek');
 const narrationTime = getElement<HTMLOutputElement>('#narration-time');
+const storySection = getElement<HTMLElement>('#story');
+const interfaceTooltips = new InterfaceTooltipController();
 
 if (hasSeenExploreGuide()) {
   stageGuide.remove();
@@ -237,21 +243,39 @@ function syncNarrationPlayer(): void {
   narrationPlayIcon.textContent = playing ? 'Ⅱ' : '▶';
   narrationPlayLabel.textContent = playing ? 'Pause' : 'Play';
   narrationPlay.setAttribute('aria-pressed', String(playing));
+  navNarrationIcon.textContent = playing ? 'Ⅱ' : '▶';
+  navNarrationLabel.textContent = playing ? 'Pause narration' : 'Play narration';
+  navNarration.setAttribute('aria-label', playing ? 'Pause narration' : 'Play narration');
+  navNarration.setAttribute('aria-pressed', String(playing));
+  navNarration.classList.toggle('is-active', playing);
+}
+
+async function toggleNarration(scrollOnPlay = false): Promise<void> {
+  const starting = narrationAudio.paused || narrationAudio.ended;
+  if (starting) {
+    if (narrationAudio.ended) narrationAudio.currentTime = 0;
+    try {
+      await narrationAudio.play();
+      if (scrollOnPlay) {
+        storySection.scrollIntoView({
+          behavior: prefersReducedMotion ? 'auto' : 'smooth',
+          block: 'start',
+        });
+      }
+    } catch {
+      // The controls remain available if a browser temporarily blocks media.
+    }
+  } else {
+    narrationAudio.pause();
+  }
+  syncNarrationPlayer();
 }
 
 function setupNarrationPlayer(): void {
-  narrationPlay.addEventListener('click', async () => {
-    if (narrationAudio.paused || narrationAudio.ended) {
-      if (narrationAudio.ended) narrationAudio.currentTime = 0;
-      try {
-        await narrationAudio.play();
-      } catch {
-        // The control remains available if a browser temporarily blocks media.
-      }
-    } else {
-      narrationAudio.pause();
-    }
-    syncNarrationPlayer();
+  narrationPlay.addEventListener('click', () => void toggleNarration());
+  navNarration.addEventListener('click', () => {
+    interfaceTooltips.hideNow();
+    void toggleNarration(true);
   });
   narrationSeek.addEventListener('input', () => {
     narrationAudio.currentTime = Number(narrationSeek.value);
@@ -262,7 +286,9 @@ function setupNarrationPlayer(): void {
   });
   narrationAudio.addEventListener('error', () => {
     narrationPlay.disabled = true;
+    navNarration.disabled = true;
     narrationPlayLabel.textContent = 'Unavailable';
+    navNarrationLabel.textContent = 'Narration unavailable';
   });
   syncNarrationPlayer();
 }
@@ -370,18 +396,6 @@ document.querySelectorAll<HTMLButtonElement>('[data-camera-focus]').forEach(butt
   });
 });
 
-document.querySelectorAll<HTMLButtonElement>('[data-tooltip-target]').forEach(button => {
-  button.addEventListener('click', () => {
-    const targetId = button.dataset.tooltipTarget;
-    if (!targetId) return;
-    const tooltip = document.getElementById(targetId);
-    if (!tooltip) return;
-    const open = tooltip.hidden;
-    tooltip.hidden = !open;
-    button.setAttribute('aria-expanded', String(open));
-  });
-});
-
 playToggle.addEventListener('click', () => {
   state.playing = !state.playing;
   updateControlReadouts();
@@ -462,5 +476,6 @@ window.addEventListener('pagehide', () => {
   resizeObserver.disconnect();
   scene?.destroy();
   narrationAudio.pause();
+  interfaceTooltips.destroy();
   void audio.destroy();
 }, { once: true });

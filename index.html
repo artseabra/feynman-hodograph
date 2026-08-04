@@ -23,7 +23,11 @@
           <span>IFTHIS / INSTRUMENT</span>
         </a>
         <div class="masthead-actions">
-          <button id="theme-toggle" class="icon-button" type="button" aria-label="Switch to chalkboard theme" data-tooltip="Theme">
+          <button id="nav-narration" class="icon-button nav-narration-button" type="button" aria-label="Play narration" aria-pressed="false" data-interface-tooltip="narration-nav">
+            <span id="nav-narration-icon" aria-hidden="true">▶</span>
+            <span id="nav-narration-label" class="sr-only">Play narration</span>
+          </button>
+          <button id="theme-toggle" class="icon-button" type="button" aria-label="Switch to chalkboard theme" data-interface-tooltip="theme">
             <span aria-hidden="true">◐</span>
           </button>
         </div>
@@ -65,10 +69,10 @@
           <p id="render-status" class="render-status" role="status" hidden></p>
           <section class="dock" aria-label="Hodograph instrument controls">
           <div class="dock-tabs" role="toolbar" aria-label="Instrument control sections">
-            <button class="dock-tab" type="button" aria-controls="panel-playback" aria-expanded="false" id="tab-playback" data-dock="playback">Playback</button>
-            <button class="dock-tab" type="button" aria-controls="panel-geometry" aria-expanded="false" id="tab-geometry" data-dock="geometry">Geometry</button>
-            <button class="dock-tab" type="button" aria-controls="panel-camera" aria-expanded="false" id="tab-camera" data-dock="camera">Camera</button>
-            <button class="dock-tab" type="button" aria-controls="panel-sound" aria-expanded="false" id="tab-sound" data-dock="sound">Sound</button>
+            <button class="dock-tab" type="button" aria-controls="panel-playback" aria-expanded="false" id="tab-playback" data-dock="playback" data-interface-tooltip="dock-playback">Playback</button>
+            <button class="dock-tab" type="button" aria-controls="panel-geometry" aria-expanded="false" id="tab-geometry" data-dock="geometry" data-interface-tooltip="dock-geometry">Geometry</button>
+            <button class="dock-tab" type="button" aria-controls="panel-camera" aria-expanded="false" id="tab-camera" data-dock="camera" data-interface-tooltip="dock-camera">Camera</button>
+            <button class="dock-tab" type="button" aria-controls="panel-sound" aria-expanded="false" id="tab-sound" data-dock="sound" data-interface-tooltip="dock-sound">Sound</button>
           </div>
 
           <div class="dock-panels">
@@ -76,49 +80,45 @@
               <div class="control-group control-group-actions">
                 <span class="control-label">Transport</span>
                 <div class="button-row">
-                  <button id="play-toggle" class="primary-button" type="button">Pause</button>
-                  <button id="restart" class="secondary-button" type="button">Restart</button>
+                  <button id="play-toggle" class="primary-button" type="button" data-interface-tooltip="playback-toggle">Pause</button>
+                  <button id="restart" class="secondary-button" type="button" data-interface-tooltip="restart">Restart</button>
                 </div>
               </div>
               <div class="control-group control-group-wide">
-                <label for="speed-control">Time scale <output id="time-scale-value">1.0×</output></label>
-                <input id="speed-control" type="range" min="0.2" max="3" step="0.1" value="1" />
+                <label for="speed-control" data-interface-tooltip="time-scale">Time scale <output id="time-scale-value">1.0×</output></label>
+                <input id="speed-control" type="range" min="0.2" max="3" step="0.1" value="1" data-interface-tooltip="time-scale" />
               </div>
-              <button class="tooltip-button" type="button" data-tooltip-target="tip-equal-time" aria-expanded="false">?</button>
-              <p id="tip-equal-time" class="tooltip-copy" hidden>Mean anomaly advances uniformly, so each construction wedge represents the same interval of time.</p>
             </section>
 
             <section id="panel-geometry" class="dock-panel" role="region" aria-labelledby="tab-geometry" data-panel="geometry" hidden>
               <div class="control-group control-group-wide">
-                <label for="eccentricity-control">Eccentricity, <i>e</i> <output id="eccentricity-value">0.55</output></label>
-                <input id="eccentricity-control" type="range" min="0" max="0.85" step="0.01" value="0.55" />
+                <label for="eccentricity-control" data-interface-tooltip="eccentricity">Eccentricity, <i>e</i> <output id="eccentricity-value">0.55</output></label>
+                <input id="eccentricity-control" type="range" min="0" max="0.85" step="0.01" value="0.55" data-interface-tooltip="eccentricity" />
               </div>
               <div class="control-group control-group-wide">
-                <label for="wedges-control">Equal-time wedges, N <output id="wedges-value">16</output></label>
-                <input id="wedges-control" type="range" min="6" max="36" step="1" value="16" />
+                <label for="wedges-control" data-interface-tooltip="wedge-count">Equal-time wedges, N <output id="wedges-value">16</output></label>
+                <input id="wedges-control" type="range" min="6" max="36" step="1" value="16" data-interface-tooltip="wedge-count" />
               </div>
-              <button class="tooltip-button" type="button" data-tooltip-target="tip-offset" aria-expanded="false">?</button>
-              <p id="tip-offset" class="tooltip-copy" hidden>The hodograph circle’s displacement from the velocity origin grows as <i>e / √(1 − e²)</i> in this normalized construction.</p>
             </section>
 
             <section id="panel-camera" class="dock-panel" role="region" aria-labelledby="tab-camera" data-panel="camera" hidden>
               <div class="control-group control-group-actions">
                 <span class="control-label">Canonical views</span>
                 <div class="button-row camera-row">
-                  <button class="secondary-button" type="button" data-camera-view="proof">Proof</button>
-                  <button class="secondary-button" type="button" data-camera-view="front">Front</button>
-                  <button class="secondary-button" type="button" data-camera-view="overhead">Overhead</button>
-                  <button class="secondary-button" type="button" data-camera-view="side">Side</button>
-                  <button id="camera-reset" class="secondary-button" type="button">Frame all</button>
+                  <button class="secondary-button" type="button" data-camera-view="proof" data-interface-tooltip="camera-proof">Proof</button>
+                  <button class="secondary-button" type="button" data-camera-view="front" data-interface-tooltip="camera-front">Front</button>
+                  <button class="secondary-button" type="button" data-camera-view="overhead" data-interface-tooltip="camera-overhead">Overhead</button>
+                  <button class="secondary-button" type="button" data-camera-view="side" data-interface-tooltip="camera-side">Side</button>
+                  <button id="camera-reset" class="secondary-button" type="button" data-interface-tooltip="camera-frame-all">Frame all</button>
                 </div>
               </div>
               <div class="control-group control-group-actions">
                 <span class="control-label">Orbit with</span>
                 <div class="button-row camera-row">
-                  <button class="secondary-button" type="button" data-camera-focus="sun" aria-pressed="false">From Sun</button>
-                  <button class="secondary-button" type="button" data-camera-focus="planet" aria-pressed="false">Planet</button>
-                  <button class="secondary-button" type="button" data-camera-focus="hodograph" aria-pressed="false">Hodograph</button>
-                  <button class="secondary-button is-selected" type="button" data-camera-focus="free" aria-pressed="true">Free camera</button>
+                  <button class="secondary-button" type="button" data-camera-focus="sun" aria-pressed="false" data-interface-tooltip="camera-sun">From Sun</button>
+                  <button class="secondary-button" type="button" data-camera-focus="planet" aria-pressed="false" data-interface-tooltip="camera-planet">Planet</button>
+                  <button class="secondary-button" type="button" data-camera-focus="hodograph" aria-pressed="false" data-interface-tooltip="camera-hodograph">Hodograph</button>
+                  <button class="secondary-button is-selected" type="button" data-camera-focus="free" aria-pressed="true" data-interface-tooltip="camera-free">Free camera</button>
                 </div>
               </div>
               <p class="control-note">Proof is the composed teaching view. Frame all is a higher neutral overview. From Sun rides the Sun’s surface and keeps the planet centred until you look away; Planet and Hodograph pin moving targets. Direction, dolly, and local pan remain yours.</p>
@@ -128,27 +128,27 @@
               <div class="control-group control-group-actions sound-actions">
                 <span class="control-label">Orbital score</span>
                 <div class="button-row">
-                  <button id="sound-enable" class="sound-state-button" type="button" aria-label="Enable sound" aria-pressed="false" title="Enable sound">
+                  <button id="sound-enable" class="sound-state-button" type="button" aria-label="Enable sound" aria-pressed="false" data-interface-tooltip="sound-toggle">
                     <span class="sound-state-icon" aria-hidden="true">◌</span>
                     <span id="sound-state-label" class="sr-only">Enable sound</span>
                   </button>
                 </div>
               </div>
               <div class="audio-controls" aria-describedby="sound-note">
-                <label for="sound-master">Master <output id="sound-master-value">78%</output></label>
-                <input id="sound-master" type="range" min="0" max="1" step="0.01" value="0.78" />
-                <label for="sound-gravity">Gravity field <output id="sound-gravity-value">68%</output></label>
-                <input id="sound-gravity" type="range" min="0" max="1" step="0.01" value="0.68" />
-                <label for="sound-velocity">Hodograph field <output id="sound-velocity-value">56%</output></label>
-                <input id="sound-velocity" type="range" min="0" max="1" step="0.01" value="0.56" />
-                <label for="sound-markers">Equal-time marks <output id="sound-markers-value">92%</output></label>
-                <input id="sound-markers" type="range" min="0" max="1" step="0.01" value="0.92" />
+                <label for="sound-master" data-interface-tooltip="sound-master">Master <output id="sound-master-value">78%</output></label>
+                <input id="sound-master" type="range" min="0" max="1" step="0.01" value="0.78" data-interface-tooltip="sound-master" />
+                <label for="sound-gravity" data-interface-tooltip="sound-gravity">Gravity field <output id="sound-gravity-value">68%</output></label>
+                <input id="sound-gravity" type="range" min="0" max="1" step="0.01" value="0.68" data-interface-tooltip="sound-gravity" />
+                <label for="sound-velocity" data-interface-tooltip="sound-hodograph">Hodograph field <output id="sound-velocity-value">56%</output></label>
+                <input id="sound-velocity" type="range" min="0" max="1" step="0.01" value="0.56" data-interface-tooltip="sound-hodograph" />
+                <label for="sound-markers" data-interface-tooltip="sound-markers">Time-boundary grains <output id="sound-markers-value">92%</output></label>
+                <input id="sound-markers" type="range" min="0" max="1" step="0.01" value="0.92" data-interface-tooltip="sound-markers" />
               </div>
-              <p id="sound-note" class="control-note">The gravity bed rises and opens with 1/r²; potential 1/r also shapes mark decay. The hodograph field crossfades four fixed resonators with the velocity vector’s angle—never engine RPM. Exact equal-time boundaries and apsides make the marks. Interpretive sonification, not planetary sound.</p>
+              <p id="sound-note" class="control-note">The gravity bed rises and opens with 1/r². The hodograph field crossfades four fixed resonators with the velocity vector’s angle. Equal-time boundaries release non-tonal grains; apsides remain distinct landmarks. Interpretive sonification, not planetary sound.</p>
             </section>
           </div>
           </section>
-          <a class="story-threshold" href="#story" aria-label="Continue below to the story of the lost lecture">
+          <a class="story-threshold" href="#story" aria-label="Continue below to the story of the lost lecture" data-interface-tooltip="story-link">
             <span class="story-threshold-kicker">The lost lecture</span>
             <span class="story-threshold-title">How a voice survived after its blackboard disappeared</span>
             <span class="story-threshold-arrow" aria-hidden="true">↓</span>
@@ -165,11 +165,11 @@
             <h3 id="narration-title">The lost lecture, told again.</h3>
             <p>Read by Alistair · ElevenLabs · 4:33</p>
             <div class="narration-controls">
-              <button id="narration-play" class="narration-play" type="button" aria-controls="narration-audio" aria-pressed="false">
+              <button id="narration-play" class="narration-play" type="button" aria-controls="narration-audio" aria-pressed="false" data-interface-tooltip="narration-play">
                 <span class="narration-play-icon" aria-hidden="true">▶</span>
                 <span id="narration-play-label">Play</span>
               </button>
-              <input id="narration-seek" type="range" min="0" max="1" step="0.01" value="0" aria-label="Narration position" disabled />
+              <input id="narration-seek" type="range" min="0" max="1" step="0.01" value="0" aria-label="Narration position" disabled data-interface-tooltip="narration-seek" />
               <output id="narration-time" for="narration-seek">0:00 / 4:33</output>
             </div>
           </div>

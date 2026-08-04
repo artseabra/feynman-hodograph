@@ -158,8 +158,7 @@ a:focus-visible {
 .icon-button,
 .secondary-button,
 .primary-button,
-.theme-choice,
-.tooltip-button {
+.theme-choice {
   border: 1px solid var(--rule);
   border-radius: 7px;
   background: transparent;
@@ -179,8 +178,7 @@ a:focus-visible {
 .quiet-button:hover,
 .secondary-button:hover,
 .theme-choice:hover,
-.icon-button:hover,
-.tooltip-button:hover {
+.icon-button:hover {
   border-color: var(--rule-bright);
   background: color-mix(in srgb, var(--ink) 5%, transparent);
   color: var(--ink);
@@ -196,10 +194,16 @@ a:focus-visible {
   font-size: 17px;
 }
 
+.nav-narration-button.is-active {
+  border-color: var(--hodograph);
+  background: color-mix(in srgb, var(--hodograph) 10%, var(--panel-strong));
+  color: var(--hodograph);
+}
+
 .instrument {
   position: relative;
   display: grid;
-  min-height: calc(100svh - 12px);
+  min-height: calc(100svh - 24px);
   grid-template-rows: minmax(560px, 1fr);
 }
 
@@ -715,28 +719,6 @@ input[type='range'] {
   line-height: 1.45;
 }
 
-.tooltip-button {
-  display: grid;
-  flex: 0 0 auto;
-  width: 25px;
-  height: 25px;
-  place-items: center;
-  align-self: flex-start;
-  color: var(--hodograph);
-  font: 700 12px/1 Georgia, serif;
-}
-
-.tooltip-copy {
-  position: absolute;
-  right: 23px;
-  bottom: 17px;
-  max-width: 45ch;
-  margin: 0;
-  color: var(--ink-soft);
-  font-size: 11px;
-  line-height: 1.45;
-}
-
 /* Canvas annotations inherit the Luster Portal tooltip anatomy and input
    contract, but intentionally omit its blur, shadow, and glow. */
 .scene-tooltip-hotspots {
@@ -825,6 +807,12 @@ input[type='range'] {
   color: rgba(244, 240, 231, 0.68);
   font-size: 11px;
   line-height: 1.38;
+}
+
+.interface-tooltip {
+  position: fixed;
+  z-index: 10010;
+  max-width: min(224px, calc(100vw - 16px));
 }
 
 .audio-controls {
@@ -1087,7 +1075,6 @@ input[type='range'] {
   .dock-panels { width: min(480px, calc(100vw - 40px)); }
   .dock-panel { min-height: 0; max-height: min(62svh, 460px); overflow-y: auto; padding: 15px 14px; gap: 16px; }
   .control-group-wide { flex-basis: 100%; }
-  .tooltip-copy { position: static; flex-basis: 100%; }
   .audio-controls { grid-template-columns: 1fr; gap: 7px; }
   .audio-controls input { margin-bottom: 5px; }
 

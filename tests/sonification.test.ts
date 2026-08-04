@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { crossedWedgeEvents, orbitalState, TAU } from '../src/model/orbit';
-import { apsisTuning, gravityFrame, hodographFrame, markerTuning, orbitalMeasures } from '../src/audio/sonification';
+import { apsisTuning, gravityFrame, hodographFrame, orbitalMeasures, wedgeTexture } from '../src/audio/sonification';
 
 describe('Keplerian sonification mapping', () => {
   it('derives the conserved angular momentum and hodograph radius from the orbit', () => {
@@ -38,16 +38,21 @@ describe('Keplerian sonification mapping', () => {
     expect(gravityFrame(perihelionState).brightness).toBeGreaterThan(gravityFrame(aphelionState).brightness);
   });
 
-  it('uses the exact equal-time crossing to create a bounded, centered mark', () => {
-    const [crossing] = crossedWedgeEvents(0, TAU / 16, 16);
-    if (!crossing) throw new Error('Expected first wedge crossing');
-    const tuning = markerTuning(crossing, orbitalState(0.55, crossing.meanAnomaly));
+  it('uses exact equal-time crossings to create bounded non-tonal grains', () => {
+    const crossings = crossedWedgeEvents(0, TAU / 8, 16);
+    const first = crossings[0];
+    const second = crossings[1];
+    if (!first || !second) throw new Error('Expected two wedge crossings');
+    const firstTexture = wedgeTexture(first, orbitalState(0.55, first.meanAnomaly));
+    const secondTexture = wedgeTexture(second, orbitalState(0.55, second.meanAnomaly));
 
-    expect(tuning.frequency).toBeGreaterThanOrEqual(220);
-    expect(tuning.frequency).toBeLessThanOrEqual(880);
-    expect(tuning.overtone).toBeGreaterThan(1);
-    expect(tuning.intensity).toBeGreaterThan(0.5);
-    expect(tuning.duration).toBeGreaterThan(0);
+    expect(firstTexture.centerFrequency).toBeGreaterThanOrEqual(560);
+    expect(firstTexture.centerFrequency).toBeLessThanOrEqual(1_800);
+    expect(firstTexture.resonance).toBeGreaterThan(0.5);
+    expect(firstTexture.intensity).toBeGreaterThan(0.5);
+    expect(firstTexture.duration).toBeGreaterThan(0);
+    expect(firstTexture.seed).not.toBe(secondTexture.seed);
+    expect(firstTexture.centerFrequency).not.toBeCloseTo(secondTexture.centerFrequency, 6);
   });
 
   it('maps the hodograph circle into a normalized four-resonator crossfade', () => {
