@@ -68,8 +68,11 @@ export function markerTuning(crossing: WedgeCrossing, state: OrbitalState): Mark
   const measures = orbitalMeasures(state);
   const pitchClass = FIFTHS[crossing.index % FIFTHS.length];
   const register = Math.floor(crossing.index / FIFTHS.length);
-  const base = 110 * Math.pow(2, (measures.hodographRadius - 1) * 0.22);
-  const frequency = clamp(base * Math.pow(2, (pitchClass + register * 12) / 12), 72, 1_280);
+  // The register starts above the laptop-speaker trough. The pitch classes,
+  // timing, envelope, and changing partial balance still come from the
+  // construction; this is an audibility choice, not an arbitrary sequence.
+  const base = 220 * Math.pow(2, (measures.hodographRadius - 1) * 0.22);
+  const frequency = clamp(base * Math.pow(2, (pitchClass + register * 12) / 12), 176, 1_600);
   const phasePan = Math.cos(measures.hodographAngle);
 
   return {

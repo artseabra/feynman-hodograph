@@ -64,8 +64,11 @@ export class AudioEngine {
     this.muted = mix.muted;
     if (!this.context || !this.master || !this.markers) return;
     const time = this.context.currentTime;
-    setTarget(this.master.gain, mix.muted ? 0 : mix.master * 0.64, time, 0.075);
-    setTarget(this.markers.gain, mix.muted ? 0 : 1, time, 0.075);
+    setTarget(this.master.gain, mix.muted ? 0 : mix.master * 0.72, time, 0.075);
+    // Marker level is a dedicated bus control, not a timid multiplier buried
+    // beneath the continuous score. At 100% the equal-time construction must
+    // read as a clear foreground landmark even on laptop speakers.
+    setTarget(this.markers.gain, mix.muted ? 0 : mix.markers, time, 0.055);
   }
 
   update(state: OrbitalState, playing: boolean): void {
@@ -134,7 +137,7 @@ export class AudioEngine {
       time,
       tuning.frequency * profile.markerPitch,
       tuning.partials,
-      0.17 * this.mix.markers * profile.markers * tuning.intensity,
+      0.3 * profile.markers * tuning.intensity,
       tuning.duration,
       tuning.pan,
     );
@@ -147,15 +150,15 @@ export class AudioEngine {
     const time = this.reserveMarkerTime(0.085);
     const aphelion = kind === 'aphelion';
     const frequency = clamp(
-      (aphelion ? 82 : 132) * Math.pow(2, (measures.hodographRadius - 1) * 0.16) * profile.markerPitch,
-      62,
-      680,
+      (aphelion ? 164 : 264) * Math.pow(2, (measures.hodographRadius - 1) * 0.16) * profile.markerPitch,
+      118,
+      1_060,
     );
     this.strike(
       time,
       frequency,
       aphelion ? [1, 0.24, 0.08] : [1, 0.48, 0.22, 0.08],
-      0.19 * this.mix.markers * profile.markers * (aphelion ? 0.74 : 1),
+      0.31 * profile.markers * (aphelion ? 0.74 : 1),
       aphelion ? 1.35 : 0.92,
       0,
     );
@@ -201,8 +204,8 @@ export class AudioEngine {
     const filter = this.context.createBiquadFilter();
     const panner = this.context.createStereoPanner();
     filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(Math.min(7_000, frequency * 2.35), time);
-    filter.Q.setValueAtTime(2.8, time);
+    filter.frequency.setValueAtTime(Math.min(7_000, frequency * 1.82), time);
+    filter.Q.setValueAtTime(1.35, time);
     panner.pan.setValueAtTime(clamp(pan, -0.22, 0.22), time);
 
     partials.forEach((partial, index) => {

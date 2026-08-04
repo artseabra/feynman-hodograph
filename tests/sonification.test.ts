@@ -29,8 +29,8 @@ describe('Keplerian sonification mapping', () => {
     if (!crossing) throw new Error('Expected first wedge crossing');
     const tuning = markerTuning(crossing, orbitalState(0.55, crossing.meanAnomaly));
 
-    expect(tuning.frequency).toBeGreaterThanOrEqual(72);
-    expect(tuning.frequency).toBeLessThanOrEqual(1_280);
+    expect(tuning.frequency).toBeGreaterThanOrEqual(176);
+    expect(tuning.frequency).toBeLessThanOrEqual(1_600);
     expect(tuning.partials).toHaveLength(4);
     expect(tuning.intensity).toBeGreaterThan(0.5);
     expect(Math.abs(tuning.pan)).toBeLessThanOrEqual(0.18);
