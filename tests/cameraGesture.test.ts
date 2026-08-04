@@ -49,11 +49,25 @@ describe('camera wheel ownership', () => {
     expect(camera.position.x).toBeCloseTo(0.285, 8);
     expect(camera.position.y).toBeCloseTo(0, 8);
     expect(direction.x).toBeCloseTo(1, 8);
-    expect(camera.fov).toBeCloseTo(108, 8);
+    expect(camera.fov).toBeCloseTo(70, 8);
 
     rig.dolly(-2_000);
     for (let index = 0; index < 12; index += 1) rig.update(camera, 0.1);
-    expect(camera.fov).toBeLessThan(108);
-    expect(camera.fov).toBeGreaterThanOrEqual(52);
+    expect(camera.fov).toBeLessThan(70);
+    expect(camera.fov).toBeGreaterThanOrEqual(38);
+  });
+
+  it('turns the Sun point of view in the same horizontal direction as the drag', () => {
+    const rig = new CameraRig();
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 200);
+    rig.beginPointOfView(new THREE.Vector3(), new THREE.Vector3(3, 0, 0));
+    rig.update(camera, 0.1);
+
+    rig.orbit(120, 0);
+    for (let index = 0; index < 14; index += 1) rig.update(camera, 0.1);
+
+    // The initial view looks along +X, whose screen-right direction is +Z.
+    // A rightward drag must therefore turn the point-of-view toward +Z.
+    expect(camera.getWorldDirection(new THREE.Vector3()).z).toBeGreaterThan(0.4);
   });
 });

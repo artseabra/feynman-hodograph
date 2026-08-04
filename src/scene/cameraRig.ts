@@ -8,12 +8,11 @@ const MAX_FREE_PITCH = HALF_PI - 0.01;
 const BASE_FOV = 42;
 const POV_EYE_RADIUS = 0.285;
 const POV_REFERENCE_DISTANCE = 4.15;
-// The Sun camera is a near-zero-focal-length observation point: it should
-// hold the surrounding construction in view, not reproduce a long-lens chase
-// shot from a point just above the focus.
-const POV_BASE_FOV = 108;
-const POV_MIN_FOV = 52;
-const POV_MAX_FOV = 130;
+// Wide enough to hold the surrounding construction from the focus, but not so
+// wide that the spatial proof turns into a fisheye caricature.
+const POV_BASE_FOV = 70;
+const POV_MIN_FOV = 38;
+const POV_MAX_FOV = 88;
 const POV_MIN_DISTANCE = POV_REFERENCE_DISTANCE * POV_MIN_FOV / POV_BASE_FOV;
 const POV_MAX_DISTANCE = POV_REFERENCE_DISTANCE * POV_MAX_FOV / POV_BASE_FOV;
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
@@ -97,6 +96,15 @@ export class CameraRig {
   }
 
   orbit(deltaX: number, deltaY: number): void {
+    if (this.followMode === 'point-of-view') {
+      // Orbit mode moves a camera around a target; point-of-view mode turns
+      // the eye itself. Horizontal direct-look must follow screen space:
+      // pull right to look right, pull left to look left. Pitch is inverted
+      // relative to the orbit camera for the same reason.
+      this.yawGoal -= deltaX * 0.0075;
+      this.pitchGoal = THREE.MathUtils.clamp(this.pitchGoal - deltaY * 0.0065, -MAX_FREE_PITCH, MAX_FREE_PITCH);
+      return;
+    }
     this.yawGoal -= deltaX * 0.0075;
     // Match the direct-manipulation expectation: dragging down lowers the
     // view toward the ground rather than lifting it away from the scene.
