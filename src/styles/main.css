@@ -232,6 +232,16 @@ a:focus-visible {
   font-size: 17px;
 }
 
+.github-source-link {
+  text-decoration: none;
+}
+
+.github-source-link svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
 .nav-narration-button.is-active {
   border-color: var(--hodograph);
   background: color-mix(in srgb, var(--hodograph) 10%, var(--panel-strong));
@@ -1514,6 +1524,11 @@ input[type='range'] {
   line-height: 1.55;
 }
 
+.creator-credit-copy {
+  display: grid;
+  gap: 7px;
+}
+
 .creator-credit strong {
   color: var(--ink);
   font-weight: 600;
@@ -1527,6 +1542,19 @@ input[type='range'] {
 
 .creator-credit a:hover {
   color: var(--hodograph);
+}
+
+.creator-credit .creator-repo-link {
+  width: fit-content;
+  color: var(--hodograph);
+  font: 600 9px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.09em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.creator-credit .creator-repo-link:hover {
+  color: var(--ink);
 }
 
 @media (max-width: 1000px) {

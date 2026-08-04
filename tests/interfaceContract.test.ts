@@ -44,7 +44,7 @@ describe('public instrument contract', () => {
     dockTabs.forEach(tab => expect(tab).not.toContain('data-interface-tooltip'));
   });
 
-  it('keeps historical sources and the contemporary translation visibly distinct', () => {
+  it('keeps both historical photographs and the contemporary translation visibly distinct', () => {
     expect(html).toContain('/sources/Goodstein.pdf');
     expect(html).toContain('/sources/goodstein-p14-feynman-notes-detail.jpg');
     expect(html).toContain('/sources/goodstein-p18-1964-lecture-photo-detail.jpg');
@@ -54,10 +54,15 @@ describe('public instrument contract', () => {
     expect(html).not.toContain('story-evidence-representation');
     expect(html).not.toContain('translation-diagram');
     expect(html).toContain('https://www.feynmanlectures.caltech.edu/recordings.html');
+    expect(html).toContain('https://digital.archives.caltech.edu/collections/Images/1.10-5/');
+    expect(html).toContain('https://www.maths.tcd.ie/pub/HistMath/People/Hamilton/Hodograph/');
     expect(html).toContain('April 29, 1963');
-    expect(html).toContain('does not identify the microphone as the reason');
+    expect(html).toContain('the planetary-motion tape survived');
+    expect(html).toContain('122 lecture tapes');
+    expect(html).toContain('3,043 frames');
+    expect(html).toContain('image 1.10-5');
     expect(html).toContain('another contemporary translation layer');
-    expect(html).toContain('exact Drive-supplied eight-page Goodstein excerpt');
+    expect(html).toContain('exact Drive-supplied Goodstein and Goodstein excerpt');
     expect(html).toContain('outside the instrument’s MIT software license');
     expect(html.match(/data-local-source/g)).toHaveLength(3);
     expect(main).toContain("method: 'HEAD'");
@@ -70,6 +75,11 @@ describe('public instrument contract', () => {
     expect(html).toContain('id="stage-controls-overlay"');
     expect(html).toContain('Keyboard paths become active when the canvas has focus.');
     expect(html).toContain('https://twitter.com/intent/follow?screen_name=ifthis');
+    expect(html.match(/https:\/\/github\.com\/artseabra\/feynman-hodograph/g)).toHaveLength(2);
+    expect(html).toContain('Open the Feynman hodograph source code on GitHub');
+    expect(html).toContain('Open-source instrument on GitHub');
+    expect(html).toContain('founder of Ifthis.');
+    expect(html).not.toContain('founder of Ifthis Research');
   });
 
   it('presents one camera-framing action through wheel, pinch, ruler, and bracket keys', () => {
@@ -91,12 +101,15 @@ describe('public instrument contract', () => {
     expect(html).toContain('aria-label="How the lecture was lost, recovered, and translated"');
     expect(html).not.toContain('class="source-field"');
     expect(html).not.toContain('class="source-gallery"');
-    expect(html).toContain('1963 / RECORDING');
-    expect(html).toContain('1964 / CALTECH');
+    expect(html).toContain('1846–47 / HAMILTON');
+    expect(html).toContain('1961–64 / RECORDED COURSE');
+    expect(html).toContain('1964 / S55');
     expect(html).toContain('1964 / NOTES');
     expect(html).toContain('1965 / OMITTED');
     expect(html).not.toContain('1985 / CONTEXT');
-    expect(html).toContain('1992–94 / RECOVERED');
+    expect(html).toContain('1992 / FOUND');
+    expect(html).toContain('1993 / MATCHED');
+    expect(html).toContain('1994 / RECONSTRUCTED');
     expect(html).toContain('NOW / TRANSLATED');
   });
 });
