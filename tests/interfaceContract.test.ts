@@ -7,10 +7,19 @@ import html from '../index.html?raw';
 import main from '../src/main.ts?raw';
 
 describe('public instrument contract', () => {
-  it('keeps the approved eccentricity cap and raised Gravity default', () => {
+  it('keeps the approved eccentricity cap and exact sound defaults', () => {
     expect(html).toMatch(/id="eccentricity-control"[^>]*max="0\.92"/);
-    expect(html).toMatch(/id="sound-gravity"[^>]*value="0\.74"/);
-    expect(html).toContain('id="sound-gravity-value">74%</output>');
+    const defaults = [
+      ['sound-master', '0.88', '88%'],
+      ['sound-gravity', '0.77', '77%'],
+      ['sound-velocity', '0.84', '84%'],
+      ['sound-markers', '0.55', '55%'],
+      ['narration-volume', '0.69', '69%'],
+    ] as const;
+    defaults.forEach(([id, value, label]) => {
+      expect(html).toMatch(new RegExp(`id="${id}"[^>]*value="${value}"`));
+      expect(html).toContain(`id="${id}-value">${label}</output>`);
+    });
   });
 
   it('uses a signed time scrubber with an exact zero stop', () => {
@@ -37,15 +46,18 @@ describe('public instrument contract', () => {
 
   it('keeps historical sources and the contemporary translation visibly distinct', () => {
     expect(html).toContain('/sources/Goodstein.pdf');
-    expect(html).toContain('/sources/goodstein-p14-feynman-notes.jpg');
-    expect(html).toContain('/sources/goodstein-p18-1964-lecture-photo.jpg');
-    expect(html).toContain('/sources/goodstein-p21-feynman-1985.jpg');
-    expect(html).toContain('class="translation-diagram"');
-    expect(html).toContain('ONE EVENT · TWO REPRESENTATIONS · EDITORIAL BRIDGE');
+    expect(html).toContain('/sources/goodstein-p14-feynman-notes-detail.jpg');
+    expect(html).toContain('/sources/goodstein-p18-1964-lecture-photo-detail.jpg');
+    expect(html).not.toContain('/sources/goodstein-p21-feynman-1985.jpg');
+    expect(html).not.toContain('story-evidence-representation');
+    expect(html).not.toContain('translation-diagram');
+    expect(html).toContain('https://www.feynmanlectures.caltech.edu/recordings.html');
+    expect(html).toContain('April 29, 1963');
+    expect(html).toContain('does not identify the microphone as the reason');
     expect(html).toContain('another contemporary translation layer');
     expect(html).toContain('exact Drive-supplied eight-page Goodstein excerpt');
     expect(html).toContain('outside the instrument’s MIT software license');
-    expect(html.match(/data-local-source/g)).toHaveLength(4);
+    expect(html.match(/data-local-source/g)).toHaveLength(3);
     expect(main).toContain("method: 'HEAD'");
     expect(main).toContain("contentType.includes('application/pdf')");
     expect(gitIgnore).not.toContain('public/sources/');
@@ -67,18 +79,21 @@ describe('public instrument contract', () => {
   });
 
   it('keeps narration volume independently adjustable in the Sound pane', () => {
-    expect(html).toMatch(/id="panel-sound"[\s\S]*id="narration-volume"[^>]*value="1"/);
-    expect(html).toContain('id="narration-volume-value">100%</output>');
+    expect(html).toMatch(/id="panel-sound"[\s\S]*id="narration-volume"[^>]*value="0\.69"/);
+    expect(html).toContain('id="narration-volume-value">69%</output>');
+    expect(html).toMatch(/label for="narration-volume"[^>]*data-tone="neutral"/);
+    expect(html).toMatch(/id="narration-volume"[^>]*data-tone="neutral"/);
   });
 
   it('intertwines the evidence with one chronological recovery story', () => {
     expect(html).toContain('aria-label="How the lecture was lost, recovered, and translated"');
     expect(html).not.toContain('class="source-field"');
     expect(html).not.toContain('class="source-gallery"');
+    expect(html).toContain('1963 / RECORDING');
     expect(html).toContain('1964 / CALTECH');
     expect(html).toContain('1964 / NOTES');
     expect(html).toContain('1965 / OMITTED');
-    expect(html).toContain('1985 / CONTEXT');
+    expect(html).not.toContain('1985 / CONTEXT');
     expect(html).toContain('1992–94 / RECOVERED');
     expect(html).toContain('NOW / TRANSLATED');
   });

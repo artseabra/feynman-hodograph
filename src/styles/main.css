@@ -996,7 +996,7 @@ kbd {
 [data-panel='sound'] label[for='sound-gravity'] { color: var(--sun); }
 [data-panel='sound'] label[for='sound-velocity'] { color: var(--hodograph); }
 [data-panel='sound'] label[for='sound-markers'] { color: var(--wedge); }
-[data-panel='sound'] label[for='narration-volume'] { color: var(--orbit); }
+[data-panel='sound'] label[for='narration-volume'] { color: var(--quiet); }
 
 input[type='range'] {
   width: 100%;
@@ -1013,7 +1013,7 @@ input[type='range'] {
 #sound-gravity { accent-color: var(--sun); }
 #sound-velocity { accent-color: var(--hodograph); }
 #sound-markers { accent-color: var(--wedge); }
-#narration-volume,
+#narration-volume { accent-color: var(--quiet); }
 #narration-seek { accent-color: var(--orbit); }
 
 .primary-button {
@@ -1347,174 +1347,15 @@ input[type='range'] {
   outline-offset: 4px;
 }
 
-.story-evidence-wide .story-evidence-media {
-  aspect-ratio: 1350 / 717;
-}
-
 .story-evidence-notes .story-evidence-media {
-  height: clamp(440px, 65vw, 650px);
-}
-
-.story-evidence-portrait {
-  display: grid;
-  grid-template-columns: minmax(250px, 0.42fr) minmax(0, 0.58fr);
-  align-items: end;
-  gap: clamp(26px, 5vw, 66px);
-}
-
-.story-evidence-portrait .story-evidence-media {
-  width: min(100%, 500px);
-  height: auto;
-  aspect-ratio: 5 / 9;
-  justify-self: end;
-}
-
-.story-evidence-portrait .story-evidence-media img {
-  width: 100%;
-  height: auto;
-  aspect-ratio: 5 / 9;
-}
-
-.story-evidence-portrait figcaption {
-  grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
-  padding: 0 0 18px;
-}
-
-.story-evidence-representation .story-evidence-media {
-  aspect-ratio: 16 / 9;
+  width: min(100%, 820px);
+  margin-inline: auto;
 }
 
 .story-evidence-media img {
   display: block;
   width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.translation-diagram {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.translation-field {
-  fill: color-mix(in srgb, var(--paper-strong) 88%, var(--paper));
-}
-
-.translation-plane {
-  stroke: color-mix(in srgb, var(--rule-bright) 76%, transparent);
-  stroke-width: 1.4;
-}
-
-.translation-plane-position {
-  fill: color-mix(in srgb, var(--orbit) 4%, transparent);
-}
-
-.translation-plane-velocity {
-  fill: color-mix(in srgb, var(--hodograph) 5%, transparent);
-}
-
-.translation-grid,
-.translation-axis,
-.translation-wedges,
-.translation-orbit,
-.translation-hodograph,
-.translation-chain,
-.translation-bridge,
-.translation-position-vector,
-.translation-velocity-vector,
-.translation-radius-vector {
-  fill: none;
-  vector-effect: non-scaling-stroke;
-}
-
-.translation-grid {
-  stroke: color-mix(in srgb, var(--grid) 42%, transparent);
-  stroke-width: 0.9;
-}
-
-.translation-axis {
-  stroke: color-mix(in srgb, var(--ink) 34%, transparent);
-  stroke-width: 1.1;
-}
-
-.translation-wedges {
-  stroke: color-mix(in srgb, var(--wedge) 62%, transparent);
-  stroke-width: 1;
-}
-
-.translation-orbit {
-  stroke: var(--orbit);
-  stroke-width: 2.8;
-}
-
-.translation-hodograph {
-  stroke: var(--hodograph);
-  stroke-width: 2.8;
-}
-
-.translation-chain {
-  stroke: color-mix(in srgb, var(--hodograph) 76%, var(--ink));
-  stroke-width: 1.4;
-}
-
-.translation-bridge {
-  stroke: var(--ink);
-  stroke-width: 2;
-  stroke-dasharray: 8 7;
-}
-
-.translation-position-vector {
-  stroke: var(--orbit);
-  stroke-width: 1.7;
-}
-
-.translation-velocity-vector {
-  stroke: var(--hodograph);
-  stroke-width: 1.8;
-}
-
-.translation-radius-vector {
-  stroke: var(--vector);
-  stroke-width: 2.2;
-}
-
-.translation-origin {
-  fill: var(--ink);
-}
-
-.translation-sun {
-  fill: var(--sun);
-}
-
-.translation-planet {
-  fill: var(--orbit);
-}
-
-.translation-center {
-  fill: var(--vector);
-}
-
-.translation-velocity-point,
-.translation-markers {
-  fill: var(--hodograph);
-}
-
-.translation-label,
-.translation-caption {
-  fill: var(--ink-soft);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-}
-
-.translation-label {
-  font-size: 13px;
-}
-
-.translation-caption {
-  font-size: 11px;
+  height: auto;
 }
 
 .story-evidence figcaption {
@@ -1522,12 +1363,6 @@ input[type='range'] {
   grid-template-columns: minmax(124px, 0.28fr) minmax(0, 0.72fr);
   gap: clamp(26px, 5vw, 66px);
   padding: 16px 0 0;
-}
-
-.story-evidence-portrait figcaption {
-  grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
-  padding: 0 0 18px;
 }
 
 .source-kind {
