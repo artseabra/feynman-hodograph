@@ -11,8 +11,8 @@ const POV_REFERENCE_DISTANCE = 4.15;
 // Wide enough to hold the surrounding construction from the focus, but not so
 // wide that the spatial proof turns into a fisheye caricature.
 const POV_BASE_FOV = 70;
-const POV_MIN_FOV = 38;
-const POV_MAX_FOV = 88;
+const POV_MIN_FOV = 55;
+const POV_MAX_FOV = 105;
 const POV_MIN_DISTANCE = POV_REFERENCE_DISTANCE * POV_MIN_FOV / POV_BASE_FOV;
 const POV_MAX_DISTANCE = POV_REFERENCE_DISTANCE * POV_MAX_FOV / POV_BASE_FOV;
 const WORLD_UP = new THREE.Vector3(0, 1, 0);

@@ -54,7 +54,12 @@ describe('camera wheel ownership', () => {
     rig.dolly(-2_000);
     for (let index = 0; index < 12; index += 1) rig.update(camera, 0.1);
     expect(camera.fov).toBeLessThan(70);
-    expect(camera.fov).toBeGreaterThanOrEqual(38);
+    expect(camera.fov).toBeGreaterThanOrEqual(55);
+
+    rig.dolly(4_000);
+    for (let index = 0; index < 12; index += 1) rig.update(camera, 0.1);
+    expect(camera.fov).toBeGreaterThan(100);
+    expect(camera.fov).toBeLessThanOrEqual(105);
   });
 
   it('keeps the moving planet centred until the visitor deliberately looks away', () => {

@@ -330,12 +330,14 @@ document.querySelectorAll<HTMLButtonElement>('[data-camera-view]').forEach(butto
   button.addEventListener('click', () => {
     setCameraFocus('free');
     scene?.setView(button.dataset.cameraView as CameraView);
+    activateDock(null);
   });
 });
 
 document.querySelectorAll<HTMLButtonElement>('[data-camera-focus]').forEach(button => {
   button.addEventListener('click', () => {
     setCameraFocus(button.dataset.cameraFocus as CameraFocus);
+    activateDock(null);
   });
 });
 
@@ -380,6 +382,7 @@ themeToggle.addEventListener('click', () => applyTheme(state.theme === 'light' ?
 cameraReset.addEventListener('click', () => {
   setCameraFocus('free');
   scene?.frameAll();
+  activateDock(null);
 });
 
 soundEnable.addEventListener('click', async () => {
