@@ -5,8 +5,9 @@ import { hodographCircle, normalizeAngle, TAU } from './orbit';
 // deliberate spatial embedding: the orbital construction lies horizontally,
 // while the hodograph stands in a vertical plane. Their shared phase is drawn
 // as a correspondence bridge rather than faking a single flat dashboard.
-const ORBIT_ORIGIN: Point3 = { x: -1.85, y: -0.58, z: 0.98 };
-const HODOGRAPH_ORIGIN: Point3 = { x: 1.85, y: 0.18, z: -1.32 };
+const WORLD_ORIGIN: Point3 = { x: 0, y: 0, z: 0 };
+const ORBIT_ORIGIN: Point3 = WORLD_ORIGIN;
+const HODOGRAPH_ORIGIN: Point3 = WORLD_ORIGIN;
 const ORBIT_SCALE = 2.2;
 const HODOGRAPH_DISPLAY_RADIUS = 1.45;
 // The grid is a construction field, not a second scene. Keep it close to the
@@ -53,9 +54,11 @@ export function hodographGridFrame(eccentricity: number): GridFrame {
   };
 }
 
-export function orbitWorld(point: Point2, elevation = 0): Point3 {
+export function orbitWorld(point: Point2, eccentricity: number, elevation = 0): Point3 {
   return {
-    x: ORBIT_ORIGIN.x + point.x * ORBIT_SCALE,
+    // orbitalState is focus-relative; +e places the ellipse's geometric
+    // centre at Blender-style world zero while the Sun remains at its focus.
+    x: ORBIT_ORIGIN.x + (point.x + eccentricity) * ORBIT_SCALE,
     y: ORBIT_ORIGIN.y + elevation,
     z: ORBIT_ORIGIN.z + point.y * ORBIT_SCALE,
   };
@@ -72,9 +75,12 @@ export function hodographDisplayScale(eccentricity: number): number {
 
 export function hodographWorld(point: Point2, eccentricity: number, depth = 0): Point3 {
   const scale = hodographDisplayScale(eccentricity);
+  const circle = hodographCircle(eccentricity);
   return {
-    x: HODOGRAPH_ORIGIN.x + point.x * scale,
-    y: HODOGRAPH_ORIGIN.y + point.y * scale,
+    x: HODOGRAPH_ORIGIN.x + (point.x - circle.center.x) * scale,
+    // Centre the circle itself at world zero. The velocity origin remains
+    // displaced downward, so offset / radius = e stays visually explicit.
+    y: HODOGRAPH_ORIGIN.y + (point.y - circle.center.y) * scale,
     z: HODOGRAPH_ORIGIN.z + depth,
   };
 }
@@ -85,7 +91,7 @@ export function activeWedgeIndex(meanAnomaly: number, wedges: number): number {
 }
 
 export function correspondenceBridge(state: OrbitalState): Point3[] {
-  const orbit = orbitWorld(state.position, 0.16);
+  const orbit = orbitWorld(state.position, state.eccentricity, 0.16);
   const hodograph = hodographWorld(state.velocity, state.eccentricity, 0.16);
   const lift = Math.max(orbit.y, hodograph.y) + 0.72;
   const firstBend: Point3 = {

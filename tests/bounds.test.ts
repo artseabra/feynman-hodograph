@@ -20,7 +20,7 @@ describe('spatial bounds and correspondence', () => {
     const bounds = computeInstrumentBounds(eccentricity, 16);
     for (let index = 0; index <= 64; index += 1) {
       const state = orbitalState(eccentricity, index / 64 * TAU);
-      expectContained(bounds, orbitWorld(state.position));
+      expectContained(bounds, orbitWorld(state.position, eccentricity));
       expectContained(bounds, hodographWorld(state.velocity, eccentricity));
       correspondenceBridge(state).forEach(point => expectContained(bounds, point));
     }
@@ -28,8 +28,8 @@ describe('spatial bounds and correspondence', () => {
   });
 
   it('embeds position and velocity in orthogonal spatial planes', () => {
-    const orbitOrigin = orbitWorld({ x: 0, y: 0 });
-    const orbitYDirection = orbitWorld({ x: 0, y: 1 });
+    const orbitOrigin = orbitWorld({ x: 0, y: 0 }, 0);
+    const orbitYDirection = orbitWorld({ x: 0, y: 1 }, 0);
     const hodographOrigin = hodographWorld({ x: 0, y: 0 }, 0);
     const hodographYDirection = hodographWorld({ x: 0, y: 1 }, 0);
 
@@ -47,11 +47,11 @@ describe('spatial bounds and correspondence', () => {
     expectContained(bounds, orbitWorld({
       x: orbitGrid.center.x - orbitGrid.extent,
       y: orbitGrid.center.y - orbitGrid.extent,
-    }, -0.14));
+    }, eccentricity, -0.14));
     expectContained(bounds, orbitWorld({
       x: orbitGrid.center.x + orbitGrid.extent,
       y: orbitGrid.center.y + orbitGrid.extent,
-    }, -0.14));
+    }, eccentricity, -0.14));
     expectContained(bounds, hodographWorld({
       x: hodographGrid.center.x - hodographGrid.extent,
       y: hodographGrid.center.y - hodographGrid.extent,
@@ -78,5 +78,14 @@ describe('spatial bounds and correspondence', () => {
 
     expect(displayRadius).toBeCloseTo(sceneLayout.hodographDisplayRadius, 12);
     expect(displayOffset / displayRadius).toBeCloseTo(eccentricity, 12);
+  });
+
+  it.each([0, 0.55, MAX_ECCENTRICITY])('aligns both geometric centres at world zero for e = %s', eccentricity => {
+    const circle = hodographCircle(eccentricity);
+    const orbitCenter = orbitWorld({ x: -eccentricity, y: 0 }, eccentricity);
+    const hodographCenter = hodographWorld(circle.center, eccentricity);
+
+    expect(orbitCenter).toEqual({ x: 0, y: 0, z: 0 });
+    expect(hodographCenter).toEqual({ x: 0, y: 0, z: 0 });
   });
 });

@@ -257,8 +257,8 @@ export class HodographScene {
       return;
     }
     if (focus === 'sun') {
-      const anchor = vector(orbitWorld({ x: 0, y: 0 }, 0.18));
-      const planet = vector(orbitWorld(this.latestState.position, 0.17));
+      const anchor = vector(orbitWorld({ x: 0, y: 0 }, this.latestState.eccentricity, 0.18));
+      const planet = vector(orbitWorld(this.latestState.position, this.latestState.eccentricity, 0.17));
       this.rig.beginPointOfView(
         anchor,
         planet,
@@ -266,7 +266,7 @@ export class HodographScene {
       return;
     }
     const target = focus === 'planet'
-      ? vector(orbitWorld(this.latestState.position, 0.17))
+      ? vector(orbitWorld(this.latestState.position, this.latestState.eccentricity, 0.17))
       : vector(hodographWorld(this.latestState.velocity, this.latestState.eccentricity, 0.2));
     this.rig.beginFollow(
       target,
@@ -312,8 +312,8 @@ export class HodographScene {
     velocity: THREE.Vector3;
   } {
 
-    const position = vector(orbitWorld(state.position, 0.17));
-    const focus = vector(orbitWorld({ x: 0, y: 0 }, 0.18));
+    const position = vector(orbitWorld(state.position, state.eccentricity, 0.17));
+    const focus = vector(orbitWorld({ x: 0, y: 0 }, state.eccentricity, 0.18));
     const circle = hodographCircle(state.eccentricity);
     const center = vector(hodographWorld(circle.center, state.eccentricity, 0.17));
     const velocity = vector(hodographWorld(state.velocity, state.eccentricity, 0.2));
@@ -422,20 +422,20 @@ export class HodographScene {
       color(this.palette.grid),
       color(this.palette.grid),
     );
-    const gridOrigin = orbitWorld(gridFrame.center, -0.12);
+    const gridOrigin = orbitWorld(gridFrame.center, eccentricity, -0.12);
     grid.position.set(gridOrigin.x, gridOrigin.y, gridOrigin.z);
     materialsOf(grid).forEach(material => setOpacity(material, 0.25));
     this.construction.add(grid);
     this.addTooltipTarget({
       id: 'orbital-plane',
       objects: [grid],
-      anchor: () => vector(orbitWorld(gridFrame.center, -0.12)),
+      anchor: () => vector(orbitWorld(gridFrame.center, eccentricity, -0.12)),
       priority: 1,
     });
 
     const orbitPoints = Array.from({ length: SEGMENTS }, (_, index) => {
       const state = orbitalState(eccentricity, index / SEGMENTS * TAU);
-      return vector(orbitWorld(state.position, 0.01));
+      return vector(orbitWorld(state.position, eccentricity, 0.01));
     });
     const orbitMaterial = new THREE.MeshStandardMaterial({ color: this.palette.orbit, roughness: 0.32, metalness: 0.18 });
     const orbitTube = makeTube(orbitPoints, 0.036, orbitMaterial, true);
@@ -449,7 +449,7 @@ export class HodographScene {
 
     const referenceCircle = Array.from({ length: SEGMENTS }, (_, index) => {
       const angle = index / SEGMENTS * TAU;
-      return vector(orbitWorld({ x: Math.cos(angle) - eccentricity, y: Math.sin(angle) }, -0.015));
+      return vector(orbitWorld({ x: Math.cos(angle) - eccentricity, y: Math.sin(angle) }, eccentricity, -0.015));
     });
     const referenceMaterial = new THREE.MeshStandardMaterial({ color: this.palette.construction, transparent: true, opacity: 0.38, roughness: 0.45, metalness: 0.05 });
     const referenceTube = makeTube(referenceCircle, 0.014, referenceMaterial, true);
@@ -464,9 +464,9 @@ export class HodographScene {
     const wedgeObjects: THREE.Object3D[] = [];
     samples.forEach((sample, index) => {
       const next = samples[(index + 1) % samples.length];
-      const focus = vector(orbitWorld({ x: 0, y: 0 }));
-      const start = vector(orbitWorld(sample.position));
-      const end = vector(orbitWorld(next.position));
+      const focus = vector(orbitWorld({ x: 0, y: 0 }, eccentricity));
+      const start = vector(orbitWorld(sample.position, eccentricity));
+      const end = vector(orbitWorld(next.position, eccentricity));
       const material = new THREE.MeshStandardMaterial({
         color: this.palette.wedge,
         transparent: true,
@@ -490,9 +490,9 @@ export class HodographScene {
       objects: wedgeObjects,
       anchor: () => {
         const index = Math.max(0, this.activeWedge) % samples.length;
-        const start = vector(orbitWorld(samples[index].position));
-        const end = vector(orbitWorld(samples[(index + 1) % samples.length].position));
-        const focus = vector(orbitWorld({ x: 0, y: 0 }));
+        const start = vector(orbitWorld(samples[index].position, eccentricity));
+        const end = vector(orbitWorld(samples[(index + 1) % samples.length].position, eccentricity));
+        const focus = vector(orbitWorld({ x: 0, y: 0 }, eccentricity));
         return focus.add(start).add(end).multiplyScalar(1 / 3);
       },
       priority: 4,

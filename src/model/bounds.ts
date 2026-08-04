@@ -44,7 +44,7 @@ function includeGrid(bounds: BoundsAccumulator, eccentricity: number): void {
     [-orbitGrid.extent, orbitGrid.extent].forEach(y => bounds.include(orbitWorld({
       x: orbitGrid.center.x + x,
       y: orbitGrid.center.y + y,
-    }, -0.14), 0.08));
+    }, eccentricity, -0.14), 0.08));
   });
 
   const hodographGrid = hodographGridFrame(eccentricity);
@@ -66,12 +66,12 @@ export function computeInstrumentBounds(eccentricity: number, wedges: number): S
   for (let index = 0; index <= 192; index += 1) {
     const anomaly = index / 192 * TAU;
     const state = orbitalState(e, anomaly);
-    bounds.include(orbitWorld(state.position), 0.2);
+    bounds.include(orbitWorld(state.position, e), 0.2);
     bounds.include(hodographWorld(state.velocity, e), 0.2);
-    bounds.include(orbitWorld({ x: Math.cos(anomaly) - e, y: Math.sin(anomaly) }), 0.1);
+    bounds.include(orbitWorld({ x: Math.cos(anomaly) - e, y: Math.sin(anomaly) }, e), 0.1);
   }
 
-  bounds.include(orbitWorld({ x: 0, y: 0 }, 0.22), 0.24);
+  bounds.include(orbitWorld({ x: 0, y: 0 }, e, 0.22), 0.24);
   const circle = hodographCircle(e);
   bounds.include(hodographWorld({ x: 0, y: 0 }, e, 0.12), 0.16);
   bounds.include(hodographWorld(circle.center, e, 0.12), 0.16);
