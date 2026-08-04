@@ -25,7 +25,8 @@ connected GitHub `main` branch serving as production.
 
 - Drag to orbit the linked construction.
 - Shift-drag or right-drag to pan.
-- Scroll or pinch to dolly.
+- Scroll normally to move through the page. Use Option/Alt-scroll (or
+  Ctrl-scroll) and pinch to dolly the canvas.
 - Use the Camera dock for canonical proof, front, overhead, and side views.
 - **Orbit with Planet** and **Orbit with Hodograph** are companion cameras:
   they travel with the selected moving point, while local orbit, pan, and

@@ -43,6 +43,13 @@
 
         <div class="stage-shell" id="stage-shell">
           <div id="stage" class="stage" aria-describedby="stage-instructions"></div>
+          <aside id="stage-guide" class="stage-guide" aria-label="How to explore the spatial proof">
+            <div>
+              <span class="stage-guide-kicker">Explore in three dimensions</span>
+              <p>Drag to orbit. <kbd>⌥</kbd> / <kbd>Ctrl</kbd> + scroll zooms. Scroll alone moves the page.</p>
+            </div>
+            <button id="stage-guide-dismiss" class="stage-guide-dismiss" type="button">Explore</button>
+          </aside>
           <div class="stage-hud stage-hud-left" aria-hidden="true">
             <span class="hud-kicker"><i class="dot dot-orbit"></i>POSITION SPACE</span>
             <strong>ORBITAL PLANE</strong>
@@ -57,7 +64,7 @@
             <span>|v| <b id="speed-readout">—</b></span>
             <span>offset <b id="offset-readout">—</b></span>
           </div>
-          <p id="stage-instructions" class="stage-instructions">Drag the spatial proof · Shift-drag or right-drag to pan · Scroll or pinch to dolly</p>
+          <p id="stage-instructions" class="stage-instructions">Drag to orbit · Shift-drag or right-drag to pan · ⌥/Ctrl + scroll or pinch to dolly</p>
           <p id="render-status" class="render-status" role="status" hidden></p>
         </div>
 

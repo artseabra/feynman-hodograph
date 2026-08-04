@@ -75,6 +75,8 @@ function dockName(value: string | undefined): DockName | null {
 
 const stage = getElement<HTMLElement>('#stage');
 const stageShell = getElement<HTMLElement>('#stage-shell');
+const stageGuide = getElement<HTMLElement>('#stage-guide');
+const stageGuideDismiss = getElement<HTMLButtonElement>('#stage-guide-dismiss');
 const radiusReadout = getElement<HTMLElement>('#radius-readout');
 const speedReadout = getElement<HTMLElement>('#speed-readout');
 const offsetReadout = getElement<HTMLElement>('#offset-readout');
@@ -223,6 +225,10 @@ function resizeScene(): void {
   fallback?.resize(bounds.width, bounds.height);
 }
 
+function dismissStageGuide(): void {
+  stageGuide.hidden = true;
+}
+
 function syncAudio(): void {
   Object.entries(audioControls).forEach(([key, input]) => {
     const mixKey = key as keyof Pick<AudioMix, 'master' | 'atmosphere' | 'motion' | 'markers'>;
@@ -248,6 +254,9 @@ document.querySelectorAll<HTMLButtonElement>('[data-dock]').forEach(button => {
     if (next) activateDock(next);
   });
 });
+
+stageGuideDismiss.addEventListener('click', dismissStageGuide);
+stage.addEventListener('hodograph:interact', dismissStageGuide, { once: true });
 
 document.querySelectorAll<HTMLButtonElement>('[data-camera-view]').forEach(button => {
   button.addEventListener('click', () => {

@@ -177,6 +177,7 @@ export class HodographScene {
 
     this.gestureController = new CameraGestureController(this.canvas, this.rig, this.camera, () => {
       this.canvas.dataset.interacting = 'true';
+      this.canvas.dispatchEvent(new CustomEvent('hodograph:interact', { bubbles: true }));
     });
 
     this.bounds = computeInstrumentBounds(parameters.eccentricity, parameters.wedges);

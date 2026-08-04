@@ -4,6 +4,10 @@ import type { CameraView, SceneBounds } from '../types';
 const INTENT_DELAY_MS = 90;
 const INTENT_DISTANCE_PX = 4;
 
+export function shouldDollyFromWheel(modifiers: Pick<WheelEvent, 'altKey' | 'ctrlKey'>): boolean {
+  return modifiers.altKey || modifiers.ctrlKey;
+}
+
 // Each preset answers a different question about the construction: the
 // composed proof, the velocity face, the orbital plan, the orthogonality
 // side, and the neutral complete overview.
@@ -253,6 +257,9 @@ export class CameraGestureController {
   };
 
   private readonly wheel = (event: WheelEvent): void => {
+    // Ordinary wheel input belongs to the document. This prevents the landing
+    // view from stealing the instinctive first scroll into an accidental zoom.
+    if (!shouldDollyFromWheel(event)) return;
     event.preventDefault();
     this.rig.dolly(event.deltaY);
     this.onInteraction();
