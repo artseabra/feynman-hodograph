@@ -3,6 +3,7 @@ import type { CameraFocus, CameraView, OrbitalState, Point3, SceneBounds, ThemeP
 import {
   activeWedgeIndex,
   correspondenceBridge,
+  hodographDisplayScale,
   hodographGridFrame,
   hodographWorld,
   orbitGridFrame,
@@ -266,7 +267,7 @@ export class HodographScene {
     }
     const target = focus === 'planet'
       ? vector(orbitWorld(this.latestState.position, 0.17))
-      : vector(hodographWorld(this.latestState.velocity, 0.2));
+      : vector(hodographWorld(this.latestState.velocity, this.latestState.eccentricity, 0.2));
     this.rig.beginFollow(
       target,
       focus === 'planet' ? 4.7 : 4.15,
@@ -314,8 +315,8 @@ export class HodographScene {
     const position = vector(orbitWorld(state.position, 0.17));
     const focus = vector(orbitWorld({ x: 0, y: 0 }, 0.18));
     const circle = hodographCircle(state.eccentricity);
-    const center = vector(hodographWorld(circle.center, 0.17));
-    const velocity = vector(hodographWorld(state.velocity, 0.2));
+    const center = vector(hodographWorld(circle.center, state.eccentricity, 0.17));
+    const velocity = vector(hodographWorld(state.velocity, state.eccentricity, 0.2));
     const bridge = correspondenceBridge(state).map(vector);
 
     this.planet.position.copy(position);
@@ -501,16 +502,17 @@ export class HodographScene {
   private addVelocitySpace(samples: ReturnType<typeof equalTimeSamples>, eccentricity: number): void {
     const circle = hodographCircle(eccentricity);
     const gridFrame = hodographGridFrame(eccentricity);
-    const grid = new THREE.GridHelper(gridFrame.extent * 2 * sceneLayout.hodographScale, 12, color(this.palette.grid), color(this.palette.grid));
+    const displayScale = hodographDisplayScale(eccentricity);
+    const grid = new THREE.GridHelper(gridFrame.extent * 2 * displayScale, 12, color(this.palette.grid), color(this.palette.grid));
     grid.rotation.x = Math.PI / 2;
-    const gridOrigin = hodographWorld(gridFrame.center, -0.14);
+    const gridOrigin = hodographWorld(gridFrame.center, eccentricity, -0.14);
     grid.position.set(gridOrigin.x, gridOrigin.y, gridOrigin.z);
     materialsOf(grid).forEach(material => setOpacity(material, 0.28));
     this.construction.add(grid);
     this.addTooltipTarget({
       id: 'velocity-plane',
       objects: [grid],
-      anchor: () => vector(hodographWorld(gridFrame.center, -0.14)),
+      anchor: () => vector(hodographWorld(gridFrame.center, eccentricity, -0.14)),
       priority: 1,
     });
 
@@ -519,7 +521,7 @@ export class HodographScene {
       return vector(hodographWorld({
         x: circle.center.x + Math.cos(angle) * circle.radius,
         y: circle.center.y + Math.sin(angle) * circle.radius,
-      }, -0.01));
+      }, eccentricity, -0.01));
     });
     const circleMaterial = new THREE.MeshStandardMaterial({ color: this.palette.hodograph, transparent: true, opacity: 0.42, roughness: 0.3, metalness: 0.18 });
     const hodographTube = makeTube(circlePoints, 0.025, circleMaterial, true);
@@ -531,8 +533,8 @@ export class HodographScene {
       priority: 6,
     });
 
-    const origin = vector(hodographWorld({ x: 0, y: 0 }));
-    const center = vector(hodographWorld(circle.center));
+    const origin = vector(hodographWorld({ x: 0, y: 0 }, eccentricity));
+    const center = vector(hodographWorld(circle.center, eccentricity));
     const offsetMaterial = new THREE.MeshStandardMaterial({ color: this.palette.vector, transparent: true, opacity: 0.68, roughness: 0.35, metalness: 0.08 });
     const offsetTube = makeTube([origin, center], 0.018, offsetMaterial);
     this.construction.add(offsetTube);
@@ -547,8 +549,8 @@ export class HodographScene {
     const velocitySampleObjects: THREE.Object3D[] = [];
     samples.forEach((sample, index) => {
       const next = samples[(index + 1) % samples.length];
-      const start = vector(hodographWorld(sample.velocity, 0.025));
-      const end = vector(hodographWorld(next.velocity, 0.025));
+      const start = vector(hodographWorld(sample.velocity, eccentricity, 0.025));
+      const end = vector(hodographWorld(next.velocity, eccentricity, 0.025));
       const direction = end.clone().sub(start);
       const length = direction.length();
       const material = new THREE.MeshStandardMaterial({ color: this.palette.hodograph, transparent: true, opacity: 0.35, roughness: 0.22, metalness: 0.3 });
@@ -574,8 +576,8 @@ export class HodographScene {
       objects: velocityStepObjects,
       anchor: () => {
         const index = Math.max(0, this.activeWedge) % samples.length;
-        const start = vector(hodographWorld(samples[index].velocity, 0.025));
-        const end = vector(hodographWorld(samples[(index + 1) % samples.length].velocity, 0.025));
+        const start = vector(hodographWorld(samples[index].velocity, eccentricity, 0.025));
+        const end = vector(hodographWorld(samples[(index + 1) % samples.length].velocity, eccentricity, 0.025));
         return start.add(end).multiplyScalar(0.5);
       },
       priority: 5,
@@ -585,7 +587,7 @@ export class HodographScene {
       objects: velocitySampleObjects,
       anchor: () => {
         const index = Math.max(0, this.activeWedge) % samples.length;
-        return vector(hodographWorld(samples[index].velocity, 0.025));
+        return vector(hodographWorld(samples[index].velocity, eccentricity, 0.025));
       },
       priority: 7,
     });

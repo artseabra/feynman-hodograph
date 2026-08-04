@@ -8,7 +8,7 @@ import { hodographCircle, normalizeAngle, TAU } from './orbit';
 const ORBIT_ORIGIN: Point3 = { x: -1.85, y: -0.58, z: 0.98 };
 const HODOGRAPH_ORIGIN: Point3 = { x: 1.85, y: 0.18, z: -1.32 };
 const ORBIT_SCALE = 2.2;
-const HODOGRAPH_SCALE = 1.25;
+const HODOGRAPH_DISPLAY_RADIUS = 1.45;
 // The grid is a construction field, not a second scene. Keep it close to the
 // ellipse so it supplies depth and measurement without turning the proof into
 // a tiny object marooned in empty tabletop.
@@ -24,7 +24,7 @@ export const sceneLayout = {
   orbitOrigin: ORBIT_ORIGIN,
   hodographOrigin: HODOGRAPH_ORIGIN,
   orbitScale: ORBIT_SCALE,
-  hodographScale: HODOGRAPH_SCALE,
+  hodographDisplayRadius: HODOGRAPH_DISPLAY_RADIUS,
   orbitGridExtent: ORBIT_GRID_EXTENT,
 };
 
@@ -61,10 +61,20 @@ export function orbitWorld(point: Point2, elevation = 0): Point3 {
   };
 }
 
-export function hodographWorld(point: Point2, depth = 0): Point3 {
+/**
+ * Position and velocity have different units, so a literal shared-world scale
+ * has no physical meaning. Keep the displayed hodograph radius stable while
+ * preserving every within-plane relation—especially offset / radius = e.
+ */
+export function hodographDisplayScale(eccentricity: number): number {
+  return HODOGRAPH_DISPLAY_RADIUS / hodographCircle(eccentricity).radius;
+}
+
+export function hodographWorld(point: Point2, eccentricity: number, depth = 0): Point3 {
+  const scale = hodographDisplayScale(eccentricity);
   return {
-    x: HODOGRAPH_ORIGIN.x + point.x * HODOGRAPH_SCALE,
-    y: HODOGRAPH_ORIGIN.y + point.y * HODOGRAPH_SCALE,
+    x: HODOGRAPH_ORIGIN.x + point.x * scale,
+    y: HODOGRAPH_ORIGIN.y + point.y * scale,
     z: HODOGRAPH_ORIGIN.z + depth,
   };
 }
@@ -76,7 +86,7 @@ export function activeWedgeIndex(meanAnomaly: number, wedges: number): number {
 
 export function correspondenceBridge(state: OrbitalState): Point3[] {
   const orbit = orbitWorld(state.position, 0.16);
-  const hodograph = hodographWorld(state.velocity, 0.16);
+  const hodograph = hodographWorld(state.velocity, state.eccentricity, 0.16);
   const lift = Math.max(orbit.y, hodograph.y) + 0.72;
   const firstBend: Point3 = {
     x: orbit.x + (hodograph.x - orbit.x) * 0.3,

@@ -82,12 +82,12 @@ const TOOLTIP_COPY: Record<SceneTooltipId, TooltipDefinition> = {
   },
   'velocity-plane': {
     label: 'Velocity space',
-    explainer: 'This orthogonal plane is not a second physical orbit. Each point represents an instantaneous velocity vector.',
+    explainer: 'This is not a second physical orbit. Its display radius is normalized because position and velocity have different units; all within-plane ratios remain exact.',
     accent: 'grid',
   },
   'hodograph-circle': {
     label: 'Hodograph circle',
-    explainer: 'For inverse-square motion, the tip of the velocity vector traces a circle—even while the position traces an ellipse.',
+    explainer: 'For inverse-square motion, the velocity tip traces a circle. Its display radius stays stable while its centre-to-origin ratio preserves eccentricity exactly.',
     accent: 'hodograph',
   },
   'hodograph-point': {
@@ -102,7 +102,7 @@ const TOOLTIP_COPY: Record<SceneTooltipId, TooltipDefinition> = {
   },
   'center-offset': {
     label: 'Eccentricity offset',
-    explainer: 'The vector from velocity origin to hodograph centre. In these normalized units its magnitude is e / √(1 − e²).',
+    explainer: 'In normalized velocity units this magnitude is e / √(1 − e²). The display is rescaled, but offset divided by circle radius remains exactly e.',
     accent: 'vector',
   },
   'hodograph-radius': {

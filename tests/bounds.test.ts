@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { computeInstrumentBounds } from '../src/model/bounds';
-import { correspondenceBridge, hodographGridFrame, hodographWorld, orbitGridFrame, orbitWorld } from '../src/model/embedding';
-import { equalTimeSamples, MAX_ECCENTRICITY, orbitalState, TAU } from '../src/model/orbit';
+import { correspondenceBridge, hodographGridFrame, hodographWorld, orbitGridFrame, orbitWorld, sceneLayout } from '../src/model/embedding';
+import { equalTimeSamples, hodographCircle, MAX_ECCENTRICITY, orbitalState, TAU } from '../src/model/orbit';
 
 function expectContained(
   bounds: ReturnType<typeof computeInstrumentBounds>,
@@ -21,7 +21,7 @@ describe('spatial bounds and correspondence', () => {
     for (let index = 0; index <= 64; index += 1) {
       const state = orbitalState(eccentricity, index / 64 * TAU);
       expectContained(bounds, orbitWorld(state.position));
-      expectContained(bounds, hodographWorld(state.velocity));
+      expectContained(bounds, hodographWorld(state.velocity, eccentricity));
       correspondenceBridge(state).forEach(point => expectContained(bounds, point));
     }
     expect(bounds.radius).toBeGreaterThan(0);
@@ -30,8 +30,8 @@ describe('spatial bounds and correspondence', () => {
   it('embeds position and velocity in orthogonal spatial planes', () => {
     const orbitOrigin = orbitWorld({ x: 0, y: 0 });
     const orbitYDirection = orbitWorld({ x: 0, y: 1 });
-    const hodographOrigin = hodographWorld({ x: 0, y: 0 });
-    const hodographYDirection = hodographWorld({ x: 0, y: 1 });
+    const hodographOrigin = hodographWorld({ x: 0, y: 0 }, 0);
+    const hodographYDirection = hodographWorld({ x: 0, y: 1 }, 0);
 
     expect(orbitYDirection.z).not.toBe(orbitOrigin.z);
     expect(orbitYDirection.y).toBe(orbitOrigin.y);
@@ -55,13 +55,28 @@ describe('spatial bounds and correspondence', () => {
     expectContained(bounds, hodographWorld({
       x: hodographGrid.center.x - hodographGrid.extent,
       y: hodographGrid.center.y - hodographGrid.extent,
-    }, -0.14));
+    }, eccentricity, -0.14));
     expectContained(bounds, hodographWorld({
       x: hodographGrid.center.x + hodographGrid.extent,
       y: hodographGrid.center.y + hodographGrid.extent,
-    }, -0.14));
+    }, eccentricity, -0.14));
     equalTimeSamples(eccentricity, 36).forEach(sample => {
       correspondenceBridge(sample).forEach(point => expectContained(bounds, point));
     });
+  });
+
+  it.each([0, 0.55, MAX_ECCENTRICITY])('keeps a stable displayed hodograph radius while preserving e at %s', eccentricity => {
+    const circle = hodographCircle(eccentricity);
+    const origin = hodographWorld({ x: 0, y: 0 }, eccentricity);
+    const center = hodographWorld(circle.center, eccentricity);
+    const edge = hodographWorld({
+      x: circle.center.x + circle.radius,
+      y: circle.center.y,
+    }, eccentricity);
+    const displayRadius = Math.abs(edge.x - center.x);
+    const displayOffset = Math.abs(center.y - origin.y);
+
+    expect(displayRadius).toBeCloseTo(sceneLayout.hodographDisplayRadius, 12);
+    expect(displayOffset / displayRadius).toBeCloseTo(eccentricity, 12);
   });
 });
