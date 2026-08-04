@@ -28,13 +28,11 @@ This 3D instrument is another contemporary translation layer of the recovered
 voice-and-blackboard argument. It is not Feynman's original presentation, a
 facsimile of it, or a replacement for the surviving source record.
 
-These PDF and JPG source assets are included in the local review build at Art's
-request so the continuous recovery story can be evaluated in context. That
-local inclusion does not authorize commit, deployment, redistribution, or a public route.
-Separate rights clearance and Art's explicit production authorization remain
-required before release; their location under `public/` is not deployment
-permission. `public/sources/` is ignored by Git as a mechanical commit guard;
-Vite still serves and copies the local files for this acceptance build.
+These PDF and JPG source assets are published at Art's direction so the
+continuous recovery story retains its visible source context. They are credited
+source reproductions, not project-authored assets, and are expressly excluded
+from the repository's MIT software license. Publication here does not grant
+downstream redistribution rights or alter the original rights holders' claims.
 
 ## Supplied one-shot prototype
 

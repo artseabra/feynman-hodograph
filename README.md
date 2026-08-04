@@ -79,6 +79,5 @@ not an archive dump.
 
 The software, project-authored interface graphics, and project documentation
 are open source under the [MIT License](LICENSE). The narration recording and
-locally held historical source reproductions are not included in that grant;
-see [ASSET_LICENSE.md](ASSET_LICENSE.md). `public/sources/` remains ignored and
-is also excluded from Vercel uploads as a mechanical publication-rights guard.
+credited historical source reproductions are published outside that grant; see
+[ASSET_LICENSE.md](ASSET_LICENSE.md) before reusing any non-code material.

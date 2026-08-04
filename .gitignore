@@ -6,5 +6,4 @@ dist/
 .env.*
 .aerrledger/
 provenance/hodograph-one-shot-2026-08-03.html
-public/sources/
 .vercel

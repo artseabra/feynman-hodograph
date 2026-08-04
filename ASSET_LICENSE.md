@@ -8,9 +8,11 @@ The following material is not granted under the MIT License:
 - `public/audio/feynman-lost-lecture-alistair.mp3` is an interpretive narration
   recording. Copyright is retained by Art Seabra / Ifthis; no redistribution
   license is granted by this repository.
-- `public/sources/` is deliberately ignored and absent from the repository. Any
-  locally present Goodstein PDF, historical photographs, handwritten notes, or
-  crops retain their original rights and are not distributed or licensed here.
+- `public/sources/` contains credited source reproductions published for
+  historical and interpretive context. The Goodstein PDF, historical
+  photographs, handwritten notes, and crops retain their original rights and
+  are not granted under the MIT License. Their presence in the repository and
+  public instrument does not grant downstream redistribution rights.
 - Names, likenesses, quotations, trademarks, and source works belonging to
   Richard Feynman, Caltech, the Goodsteins, W. W. Norton, or any other third
   party remain the property of their respective rights holders.

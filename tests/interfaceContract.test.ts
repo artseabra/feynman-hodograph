@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 import { describe, expect, it } from 'vitest';
+import gitIgnore from '../.gitignore?raw';
 import vercelIgnore from '../.vercelignore?raw';
 import html from '../index.html?raw';
 import main from '../src/main.ts?raw';
@@ -43,11 +44,12 @@ describe('public instrument contract', () => {
     expect(html).toContain('ONE EVENT · TWO REPRESENTATIONS · EDITORIAL BRIDGE');
     expect(html).toContain('another contemporary translation layer');
     expect(html).toContain('exact Drive-supplied eight-page Goodstein excerpt');
-    expect(html).toContain('pending a separate publication-rights decision');
+    expect(html).toContain('outside the instrument’s MIT software license');
     expect(html.match(/data-local-source/g)).toHaveLength(4);
     expect(main).toContain("method: 'HEAD'");
     expect(main).toContain("contentType.includes('application/pdf')");
-    expect(vercelIgnore).toContain('public/sources/');
+    expect(gitIgnore).not.toContain('public/sources/');
+    expect(vercelIgnore).not.toContain('public/sources/');
   });
 
   it('provides a compact controls sheet and links the creator name to Ifthis', () => {
