@@ -216,17 +216,15 @@ export class HodographScene {
       this.rig.releaseFollow();
       return;
     }
-    const target = focus === 'sun'
-      ? this.sun.position
-      : focus === 'planet'
-        ? this.planet.position
-        : this.hodographPoint.position;
+    if (focus === 'sun') {
+      this.rig.beginPointOfView(this.sun.position, this.planet.position);
+      return;
+    }
+    const target = focus === 'planet' ? this.planet.position : this.hodographPoint.position;
     this.rig.beginFollow(
       target,
-      focus === 'sun' ? 4.15 : focus === 'planet' ? 4.7 : 4.15,
-      focus === 'sun'
-        ? { yaw: -0.64, pitch: 0.25 }
-        : focus === 'planet'
+      focus === 'planet' ? 4.7 : 4.15,
+      focus === 'planet'
         ? { yaw: -0.76, pitch: 0.23 }
         : { yaw: 0.96, pitch: 0.17 },
     );
@@ -260,7 +258,7 @@ export class HodographScene {
     this.updateArrow(this.velocityArrow, center, velocity);
     this.updateBridge(bridge);
     this.updateActiveConstruction(activeWedgeIndex(state.meanAnomaly, this.parameters.wedges));
-    if (this.cameraFocus === 'sun') this.rig.trackFollow(focus);
+    if (this.cameraFocus === 'sun') this.rig.trackPointOfView(focus);
     if (this.cameraFocus === 'planet') this.rig.trackFollow(position);
     if (this.cameraFocus === 'hodograph') this.rig.trackFollow(velocity);
     this.rig.update(this.camera, deltaSeconds);

@@ -37,4 +37,24 @@ describe('camera wheel ownership', () => {
     expect(camera.position.z).toBeCloseTo(0, 10);
     expect(camera.position.x).toBeGreaterThan(0);
   });
+
+  it('uses the Sun camera as an anchored point of view with lens zoom', () => {
+    const rig = new CameraRig();
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 200);
+    const sun = new THREE.Vector3(0, 0, 0);
+    const planet = new THREE.Vector3(3, 0, 0);
+
+    rig.beginPointOfView(sun, planet);
+    rig.update(camera, 0.1);
+    const direction = camera.getWorldDirection(new THREE.Vector3());
+    expect(camera.position.x).toBeCloseTo(0.285, 8);
+    expect(camera.position.y).toBeCloseTo(0, 8);
+    expect(direction.x).toBeCloseTo(1, 8);
+    expect(camera.fov).toBeCloseTo(42, 8);
+
+    rig.dolly(-2_000);
+    for (let index = 0; index < 12; index += 1) rig.update(camera, 0.1);
+    expect(camera.fov).toBeLessThan(42);
+    expect(camera.fov).toBeGreaterThanOrEqual(16);
+  });
 });

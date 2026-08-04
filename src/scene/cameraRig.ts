@@ -5,6 +5,13 @@ const INTENT_DELAY_MS = 90;
 const INTENT_DISTANCE_PX = 4;
 const HALF_PI = Math.PI / 2;
 const MAX_FREE_PITCH = HALF_PI - 0.01;
+const BASE_FOV = 42;
+const POV_EYE_RADIUS = 0.285;
+const POV_REFERENCE_DISTANCE = 4.15;
+const POV_MIN_FOV = 16;
+const POV_MAX_FOV = 72;
+const POV_MIN_DISTANCE = POV_REFERENCE_DISTANCE * POV_MIN_FOV / BASE_FOV;
+const POV_MAX_DISTANCE = POV_REFERENCE_DISTANCE * POV_MAX_FOV / BASE_FOV;
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
 const TOP_DOWN_UP = new THREE.Vector3(0, 0, -1);
 const BOTTOM_UP_UP = new THREE.Vector3(0, 0, 1);
@@ -33,7 +40,7 @@ export class CameraRig {
   private readonly target = new THREE.Vector3();
   private readonly targetGoal = new THREE.Vector3();
   private readonly followOffset = new THREE.Vector3();
-  private following = false;
+  private followMode: 'none' | 'target' | 'point-of-view' = 'none';
   private yaw = CAMERA_PRESETS.proof.yaw;
   private yawGoal = CAMERA_PRESETS.proof.yaw;
   private pitch = CAMERA_PRESETS.proof.pitch;
@@ -44,6 +51,15 @@ export class CameraRig {
   private maximumDistance = 40;
 
   fit(bounds: SceneBounds, camera: THREE.PerspectiveCamera, aspect: number): void {
+    if (this.followMode === 'point-of-view') {
+      this.minimumDistance = POV_MIN_DISTANCE;
+      this.maximumDistance = POV_MAX_DISTANCE;
+      return;
+    }
+    if (camera.fov !== BASE_FOV) {
+      camera.fov = BASE_FOV;
+      camera.updateProjectionMatrix();
+    }
     const fovRadians = THREE.MathUtils.degToRad(camera.fov);
     const horizontalFov = 2 * Math.atan(Math.tan(fovRadians / 2) * aspect);
     const { forward, right, up } = this.basisAt(this.yawGoal, this.pitchGoal);
@@ -68,9 +84,9 @@ export class CameraRig {
     }, 0.1);
     const distance = requiredDistance * 1.13;
 
-    this.minimumDistance = Math.max(1.8, requiredDistance * 0.5);
-    this.maximumDistance = Math.max(distance * 4, bounds.radius * 6);
-    if (!this.following) {
+    this.minimumDistance = Math.max(0.55, requiredDistance * 0.14);
+    this.maximumDistance = Math.max(distance * 6, bounds.radius * 8);
+    if (this.followMode === 'none') {
       this.targetGoal.set(bounds.center.x, bounds.center.y, bounds.center.z);
       this.distanceGoal = THREE.MathUtils.clamp(distance, this.minimumDistance, this.maximumDistance);
     }
@@ -87,13 +103,13 @@ export class CameraRig {
     const scale = this.distanceGoal * 0.00145;
     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
     const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
-    const target = this.following ? this.followOffset : this.targetGoal;
+    const target = this.followMode !== 'none' ? this.followOffset : this.targetGoal;
     target.addScaledVector(right, -deltaX * scale);
     target.addScaledVector(up, deltaY * scale);
   }
 
   dolly(delta: number): void {
-    const multiplier = Math.exp(delta * 0.0012);
+    const multiplier = Math.exp(delta * 0.0018);
     this.distanceGoal = THREE.MathUtils.clamp(
       this.distanceGoal * multiplier,
       this.minimumDistance,
@@ -116,25 +132,56 @@ export class CameraRig {
     distance: number,
     orientation?: { yaw: number; pitch: number },
   ): void {
-    this.following = true;
+    this.followMode = 'target';
     this.followOffset.set(0, 0, 0);
     if (orientation) this.setOrientation(orientation);
-    this.minimumDistance = Math.min(this.minimumDistance, 2.45);
+    this.minimumDistance = Math.min(this.minimumDistance, 0.7);
     this.maximumDistance = Math.max(this.maximumDistance, distance * 5);
     this.distanceGoal = THREE.MathUtils.clamp(distance, this.minimumDistance, this.maximumDistance);
     this.trackFollow(point);
   }
 
   trackFollow(point: THREE.Vector3): void {
-    if (!this.following) return;
+    if (this.followMode !== 'target') return;
     this.targetGoal.copy(point).add(this.followOffset);
     // A companion view is attached to its chosen body, not delayed behind it.
     this.target.copy(this.targetGoal);
   }
 
   releaseFollow(): void {
-    this.following = false;
+    this.followMode = 'none';
     this.followOffset.set(0, 0, 0);
+  }
+
+  /**
+   * A body-relative camera is not an orbit camera pointed at that body. The
+   * eye begins just outside its rendered surface and looks through the scene.
+   * The user still owns yaw, pitch, dolly (as lens zoom), and local pan.
+   */
+  beginPointOfView(anchor: THREE.Vector3, initialSubject: THREE.Vector3): void {
+    this.followMode = 'point-of-view';
+    this.followOffset.set(0, 0, 0);
+    const direction = initialSubject.clone().sub(anchor);
+    if (direction.lengthSq() > 1e-8) {
+      direction.normalize();
+      this.setOrientation({
+        yaw: Math.atan2(direction.x, direction.z),
+        pitch: Math.asin(THREE.MathUtils.clamp(direction.y, -1, 1)),
+      }, true);
+    }
+    this.minimumDistance = POV_MIN_DISTANCE;
+    this.maximumDistance = POV_MAX_DISTANCE;
+    this.distance = POV_REFERENCE_DISTANCE;
+    this.distanceGoal = POV_REFERENCE_DISTANCE;
+    this.trackPointOfView(anchor);
+  }
+
+  trackPointOfView(anchor: THREE.Vector3): void {
+    if (this.followMode !== 'point-of-view') return;
+    this.targetGoal.copy(anchor).add(this.followOffset);
+    // An anchored point of view must move with its body immediately; otherwise
+    // the eye seems to lag behind the physical point it claims to inhabit.
+    this.target.copy(this.targetGoal);
   }
 
   private setOrientation({ yaw, pitch }: { yaw: number; pitch: number }, snap = false): void {
@@ -177,10 +224,38 @@ export class CameraRig {
     this.distance = THREE.MathUtils.lerp(this.distance, this.distanceGoal, damping);
 
     const cosPitch = Math.cos(this.pitch);
+    const viewDirection = new THREE.Vector3(
+      Math.sin(this.yaw) * cosPitch,
+      Math.sin(this.pitch),
+      Math.cos(this.yaw) * cosPitch,
+    ).normalize();
+
+    if (this.followMode === 'point-of-view') {
+      const fov = THREE.MathUtils.clamp(
+        BASE_FOV * (this.distance / POV_REFERENCE_DISTANCE),
+        POV_MIN_FOV,
+        POV_MAX_FOV,
+      );
+      if (camera.fov !== fov) {
+        camera.fov = fov;
+        camera.updateProjectionMatrix();
+      }
+      camera.position.copy(this.target).addScaledVector(viewDirection, POV_EYE_RADIUS);
+      camera.up.copy(Math.abs(Math.abs(this.pitch) - HALF_PI) < 0.001
+        ? (this.pitch >= 0 ? TOP_DOWN_UP : BOTTOM_UP_UP)
+        : WORLD_UP);
+      camera.lookAt(camera.position.clone().add(viewDirection));
+      return;
+    }
+
+    if (camera.fov !== BASE_FOV) {
+      camera.fov = BASE_FOV;
+      camera.updateProjectionMatrix();
+    }
     camera.position.set(
-      this.target.x + this.distance * Math.sin(this.yaw) * cosPitch,
+      this.target.x + this.distance * viewDirection.x,
       this.target.y + this.distance * Math.sin(this.pitch),
-      this.target.z + this.distance * Math.cos(this.yaw) * cosPitch,
+      this.target.z + this.distance * viewDirection.z,
     );
     // A literal overhead view needs a non-collinear camera-up vector. Without
     // this, Three.js has to invent a roll at the singularity.
