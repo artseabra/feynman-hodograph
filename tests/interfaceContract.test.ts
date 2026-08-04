@@ -48,6 +48,8 @@ describe('public instrument contract', () => {
     expect(html).toContain('/sources/Goodstein.pdf');
     expect(html).toContain('/sources/goodstein-p14-feynman-notes-detail.jpg');
     expect(html).toContain('/sources/goodstein-p18-1964-lecture-photo-detail.jpg');
+    expect(html).toContain('/sources/caltech-s46-feynman-microphone-1963.png');
+    expect(html).toContain('Feynman wearing the lecture microphone.');
     expect(html).not.toContain('/sources/goodstein-p21-feynman-1985.jpg');
     expect(html).not.toContain('story-evidence-representation');
     expect(html).not.toContain('translation-diagram');
