@@ -1,5 +1,6 @@
 import './styles/main.css';
 import './styles/mobile.css';
+import { inject } from '@vercel/analytics';
 import { AudioEngine } from './audio/audioEngine';
 import { crossedApsisEvents, crossedWedgeEvents, hodographCircle, orbitalState, TAU } from './model/orbit';
 import { FallbackRenderer } from './scene/fallback';
@@ -8,6 +9,8 @@ import { OutroHodographScene } from './scene/outroHodographScene';
 import type { AudioMix, CameraFocus, CameraView, ConstructionLayout, InstrumentState, ThemeName, ThemePalette } from './types';
 import { initialCameraState, reduceCameraState } from './ui/cameraState';
 import { InterfaceTooltipController } from './ui/interfaceTooltips';
+
+inject();
 
 const palettes: Record<ThemeName, ThemePalette> = {
   light: {
