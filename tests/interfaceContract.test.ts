@@ -5,11 +5,14 @@ import gitIgnore from '../.gitignore?raw';
 import vercelIgnore from '../.vercelignore?raw';
 import html from '../index.html?raw';
 import main from '../src/main.ts?raw';
+import heroScene from '../src/scene/hodographScene.ts?raw';
 import outroScene from '../src/scene/outroHodographScene.ts?raw';
 
 describe('public instrument contract', () => {
   it('keeps the approved eccentricity cap and exact sound defaults', () => {
     expect(html).toMatch(/id="eccentricity-control"[^>]*max="0\.92"/);
+    expect(html).toMatch(/id="eccentricity-control"[^>]*value="0\.69"/);
+    expect(html).toMatch(/id="wedges-control"[^>]*value="18"/);
     const defaults = [
       ['sound-master', '0.88', '88%'],
       ['sound-gravity', '0.77', '77%'],
@@ -131,6 +134,8 @@ describe('public instrument contract', () => {
     expect(outroScene).toContain("powerPreference: 'low-power'");
     expect(outroScene).toContain("const OUTRO_LAYOUT = 'separated' as const");
     expect(outroScene).toContain("this.rig.setView('spatial'");
+    expect(heroScene).toContain('this.rig.setSnapshot(AUTHORED_SPATIAL_CAMERA');
+    expect(outroScene).toContain('this.rig.setSnapshot(AUTHORED_SPATIAL_CAMERA');
     expect(outroScene).toContain('correspondenceBridge(state, OUTRO_LAYOUT)');
     expect(outroScene).toContain('orbitWorld(state.position');
     expect(outroScene).toContain('hodographWorld(state.velocity');

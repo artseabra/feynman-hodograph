@@ -21,7 +21,7 @@ import {
 } from '../model/embedding';
 import { equalTimeSamples, hodographCircle, orbitalState, TAU } from '../model/orbit';
 import { computeInstrumentBounds } from '../model/bounds';
-import { CameraGestureController, CameraRig } from './cameraRig';
+import { AUTHORED_SPATIAL_CAMERA, CameraGestureController, CameraRig } from './cameraRig';
 import { CanvasTooltipController, type CanvasTooltipTarget } from './canvasTooltips';
 import {
   auxiliaryCircleOpacity,
@@ -31,6 +31,7 @@ import {
 } from './glyphSizing';
 
 const SEGMENTS = 192;
+const MIN_AUTHORED_CAMERA_ASPECT = 1.2;
 
 interface ConstructionParameters {
   eccentricity: number;
@@ -308,7 +309,7 @@ export class HodographScene {
     this.cameraFocus = 'free';
     this.sun.visible = true;
     this.sunOutline.visible = false;
-    this.rig.setView(view, this.bounds, this.camera, this.camera.aspect, this.fixedViewTarget());
+    this.refitFixedView();
   }
 
   setCameraFocus(focus: CameraFocus): void {
@@ -467,6 +468,13 @@ export class HodographScene {
       this.camera.aspect,
       this.fixedViewTarget(),
     );
+    if (
+      this.cameraView === 'spatial'
+      && this.layout === 'separated'
+      && this.camera.aspect >= MIN_AUTHORED_CAMERA_ASPECT
+    ) {
+      this.rig.setSnapshot(AUTHORED_SPATIAL_CAMERA, this.camera);
+    }
   }
 
   private fixedViewTarget(): Point3 {

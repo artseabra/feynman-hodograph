@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { computeInstrumentBounds } from '../src/model/bounds';
 import { MAX_ECCENTRICITY } from '../src/model/orbit';
-import { CameraRig, cameraPresetOrientation, shouldDollyFromWheel } from '../src/scene/cameraRig';
+import {
+  AUTHORED_SPATIAL_CAMERA,
+  CameraRig,
+  cameraPresetOrientation,
+  shouldDollyFromWheel,
+} from '../src/scene/cameraRig';
 
 describe('camera wheel ownership', () => {
   it('leaves ordinary entry scrolling to the document', () => {
@@ -60,9 +65,27 @@ describe('camera wheel ownership', () => {
   });
 
   it('keeps the spatial and centered constants deterministic and distinct', () => {
-    expect(cameraPresetOrientation('spatial')).toEqual({ yaw: -0.58, pitch: 0.34 });
+    expect(cameraPresetOrientation('spatial')).toEqual({
+      yaw: 0.7501660156250033,
+      pitch: 0.060423828124999954,
+    });
     expect(cameraPresetOrientation('centered')).toEqual({ yaw: 0.02, pitch: 0.06 });
     expect(cameraPresetOrientation('spatial')).not.toEqual(cameraPresetOrientation('centered'));
+  });
+
+  it('restores the captured Spatial composition as a complete camera snapshot', () => {
+    const rig = new CameraRig();
+    const camera = new THREE.PerspectiveCamera(42, 1920 / 963, 0.05, 200);
+    rig.setView('spatial', computeInstrumentBounds(0.69, 18, 'separated'), camera, camera.aspect);
+    rig.setSnapshot(AUTHORED_SPATIAL_CAMERA, camera);
+    rig.update(camera, 0);
+
+    const { yaw, pitch, distance, target, fov } = AUTHORED_SPATIAL_CAMERA;
+    const cosPitch = Math.cos(pitch);
+    expect(camera.fov).toBe(fov);
+    expect(camera.position.x).toBeCloseTo(target.x + distance * Math.sin(yaw) * cosPitch, 12);
+    expect(camera.position.y).toBeCloseTo(target.y + distance * Math.sin(pitch), 12);
+    expect(camera.position.z).toBeCloseTo(target.z + distance * Math.cos(yaw) * cosPitch, 12);
   });
 
   it('keeps both authored planes legible in the Spatial projection', () => {

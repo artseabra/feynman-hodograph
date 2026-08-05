@@ -11,11 +11,12 @@ import {
   sceneLayout,
 } from '../model/embedding';
 import { hodographCircle, orbitalState, TAU } from '../model/orbit';
-import { CameraRig } from './cameraRig';
+import { AUTHORED_SPATIAL_CAMERA, CameraRig } from './cameraRig';
 
 const CURVE_SEGMENTS = 144;
 const OUTRO_LAYOUT = 'separated' as const;
-const OUTRO_WEDGES = 16;
+const OUTRO_WEDGES = 18;
+const MIN_AUTHORED_CAMERA_ASPECT = 1.2;
 
 function vector(point: Point3): THREE.Vector3 {
   return new THREE.Vector3(point.x, point.y, point.z);
@@ -126,7 +127,7 @@ export class OutroHodographScene {
     this.hodograph.renderOrder = 4;
     this.bridge.renderOrder = 8;
     this.setPalette(palette);
-    this.rebuildConstruction(0.55);
+    this.rebuildConstruction(0.69);
   }
 
   setActive(active: boolean): void {
@@ -252,6 +253,9 @@ export class OutroHodographScene {
   private refitCamera(): void {
     const bounds = computeInstrumentBounds(this.eccentricity, OUTRO_WEDGES, OUTRO_LAYOUT);
     this.rig.setView('spatial', bounds, this.camera, this.camera.aspect, bounds.center);
+    if (this.camera.aspect >= MIN_AUTHORED_CAMERA_ASPECT) {
+      this.rig.setSnapshot(AUTHORED_SPATIAL_CAMERA, this.camera);
+    }
     this.rig.update(this.camera, 0);
   }
 }

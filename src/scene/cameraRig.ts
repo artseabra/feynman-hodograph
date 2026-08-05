@@ -23,11 +23,31 @@ export function shouldDollyFromWheel(exploring: boolean): boolean {
   return exploring;
 }
 
+export interface CameraSnapshot {
+  yaw: number;
+  pitch: number;
+  distance: number;
+  target: Point3;
+  fov: number;
+}
+
+export const AUTHORED_SPATIAL_CAMERA: Readonly<CameraSnapshot> = {
+  yaw: 0.7501660156250033,
+  pitch: 0.060423828124999954,
+  distance: 11.241981194867833,
+  target: {
+    x: -0.21667781332460084,
+    y: 1.250273369317787,
+    z: 0.013822492070548732,
+  },
+  fov: 42,
+};
+
 // Each preset answers a different question about the construction. Overhead
 // is genuinely normal to the orbital plane; side is genuinely normal to the
 // world X axis. Spatial and centered retain the two proven oblique framings.
 const CAMERA_PRESETS: Record<CameraView, { yaw: number; pitch: number }> = {
-  spatial: { yaw: -0.58, pitch: 0.34 },
+  spatial: { yaw: AUTHORED_SPATIAL_CAMERA.yaw, pitch: AUTHORED_SPATIAL_CAMERA.pitch },
   centered: { yaw: 0.02, pitch: 0.06 },
   overhead: { yaw: 0, pitch: HALF_PI },
   side: { yaw: HALF_PI, pitch: 0 },
@@ -52,6 +72,19 @@ export class CameraRig {
   private distanceGoal = 15;
   private minimumDistance = 3;
   private maximumDistance = 40;
+
+  setSnapshot(snapshot: Readonly<CameraSnapshot>, camera: THREE.PerspectiveCamera): void {
+    this.releaseFollow();
+    if (camera.fov !== snapshot.fov) {
+      camera.fov = snapshot.fov;
+      camera.updateProjectionMatrix();
+    }
+    this.target.set(snapshot.target.x, snapshot.target.y, snapshot.target.z);
+    this.targetGoal.copy(this.target);
+    this.distance = snapshot.distance;
+    this.distanceGoal = snapshot.distance;
+    this.setOrientation(snapshot, true);
+  }
 
   setView(
     view: CameraView,
